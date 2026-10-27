@@ -27,6 +27,13 @@ const safeUrl = (value) => {
     return ["https:", "http:"].includes(url.protocol) ? url.href : "";
   } catch { return ""; }
 };
+function usernameToInternalEmail(value) {
+  const username = String(value || "").trim().toLowerCase();
+  if (!/^[a-z0-9][a-z0-9._-]{2,31}$/.test(username)) {
+    throw new Error("Username harus 3–32 karakter: huruf kecil, angka, titik, garis bawah, atau tanda hubung.");
+  }
+  return username + "@dbx-history.local";
+}
 const pill = (status) => '<span class="status ' + esc(status || "") + '">' +
   esc(statusLabels[status] || status || "Belum tersedia") + "</span>";
 const heading = (eyebrow, title, description, count = "") =>
@@ -404,20 +411,31 @@ async function adminPage() {
   if (!currentSession) {
     $("#app").innerHTML = '<section class="page-wrap"><div class="login-card"><div class="eyebrow">Private area / DBX</div>' +
       '<h2>Admin sign in.</h2><p>Area ini hanya untuk founder atau administrator yang telah diberi izin. Login tidak otomatis memberi hak admin.</p>' +
-      '<form id="admin-login"><div class="form-field"><label for="admin-email">Email administrator</label><input id="admin-email" type="email" autocomplete="username" required></div>' +
-      '<div class="form-field"><label for="admin-password">Password</label><input id="admin-password" type="password" autocomplete="current-password" required></div>' +
+      '<form id="admin-login"><div class="form-field"><label for="admin-username">Username administrator</label><input id="admin-username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="contoh: gabriel" minlength="3" maxlength="32" required></div>' +
+      '<div class="form-field"><label for="admin-password">Kata sandi</label><input id="admin-password" type="password" autocomplete="current-password" required></div>' +
       '<div id="login-message" aria-live="polite"></div><button class="btn" type="submit">Masuk ke dashboard ↗</button></form>' +
-      '<p style="font-size:10px;margin-top:18px">Akun harus dibuat melalui Supabase Auth dan UUID-nya harus terdaftar di tabel <code>admin_users</code>.</p></div></section>';
+      '<p style="font-size:10px;margin-top:18px">Website menggunakan username dan kata sandi, bukan Gmail. Supabase Auth menyimpan email internal berbentuk <code>username@dbx-history.local</code>; alamat ini tidak dipakai untuk mengirim email. User tetap harus terdaftar di <code>admin_users</code>.</p></div></section>';
     $("#admin-login").addEventListener("submit", async (event) => {
       event.preventDefault();
       const button = $('button[type="submit"]', event.currentTarget);
       button.disabled = true;
       button.textContent = "Memverifikasi…";
-      const { error } = await supabase.auth.signInWithPassword({
-        email: $("#admin-email").value.trim(), password: $("#admin-password").value
-      });
+      let error;
+      try {
+        const email = usernameToInternalEmail($("#admin-username").value);
+        ({ error } = await supabase.auth.signInWithPassword({
+          email, password: $("#admin-password").value
+        }));
+      } catch (validationError) {
+        error = validationError;
+      }
       if (error) {
-        $("#login-message").innerHTML = showNotice(error.message, true);
+        const message = error.message || "Login gagal.";
+        $("#login-message").innerHTML = showNotice(
+          message.includes("Invalid login credentials")
+            ? "Username atau kata sandi salah. Periksa username yang dipakai saat akun Auth dibuat."
+            : message, true
+        );
         button.disabled = false;
         button.textContent = "Masuk ke dashboard ↗";
       }
