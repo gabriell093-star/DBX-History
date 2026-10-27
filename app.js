@@ -38,6 +38,8 @@ const emptyState = (title, description, extra = "") =>
   esc(title) + "</h2><p>" + esc(description) + "</p>" + extra + "</div>";
 const showNotice = (message, isError = false) =>
   '<div class="notice ' + (isError ? "error" : "success") + '" role="status">' + esc(message) + "</div>";
+const showNotice = (message, isError = false) =>
+  '<div class="notice ' + (isError ? "error" : "success") + '" role="status">' + esc(message) + "</div>";
 
 function toast(message) {
   $(".toast")?.remove();
@@ -260,9 +262,9 @@ async function funFactPage() {
   setLoading("Memeriksa catatan statistik…");
   try {
     const [matches, titles, characterUses] = await Promise.all([
-      queryRows("matches", "id,tournament_id,participant_a,participant_b,winner_id,match_status", null),
-      queryRows("titles", "id,debatter_id,confirmation_status", null),
-      queryRows("match_characters", "id,match_id,debatter_id,character_id,characters(character_name)", null)
+      queryRows("matches", "id,tournament_id,participant_a,participant_b,winner_id,match_status", null, false, 1000),
+      queryRows("titles", "id,debatter_id,confirmation_status", null, false, 1000),
+      queryRows("match_characters", "id,match_id,debatter_id,character_id,characters(character_name)", null, false, 1000)
     ]);
     const validMatches = matches.filter((m) => m.match_status === "completed" && m.winner_id);
     const validTitles = titles.filter((t) => ["verified", "corrected"].includes(t.confirmation_status));
