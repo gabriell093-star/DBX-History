@@ -32,7 +32,7 @@ function usernameToInternalEmail(value) {
   if (!/^[a-z0-9][a-z0-9._-]{2,31}$/.test(username)) {
     throw new Error("Username harus 3–32 karakter: huruf kecil, angka, titik, garis bawah, atau tanda hubung.");
   }
-  return username + "@dbx-history.local";
+  return username + "@dbx-history.vercel.app";
 }
 const pill = (status) => '<span class="status ' + esc(status || "") + '">' +
   esc(statusLabels[status] || status || "Belum tersedia") + "</span>";
@@ -414,7 +414,7 @@ async function adminPage() {
       '<form id="admin-login"><div class="form-field"><label for="admin-username">Username administrator</label><input id="admin-username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="contoh: gabriel" minlength="3" maxlength="32" required></div>' +
       '<div class="form-field"><label for="admin-password">Kata sandi</label><input id="admin-password" type="password" autocomplete="current-password" required></div>' +
       '<div id="login-message" aria-live="polite"></div><button class="btn" type="submit">Masuk ke dashboard ↗</button></form>' +
-      '<p style="font-size:10px;margin-top:18px">Website menggunakan username dan kata sandi, bukan Gmail. Supabase Auth menyimpan email internal berbentuk <code>username@dbx-history.local</code>; alamat ini tidak dipakai untuk mengirim email. User tetap harus terdaftar di <code>admin_users</code>.</p></div></section>';
+      '<p style="font-size:10px;margin-top:18px">Website menggunakan username dan kata sandi, bukan Gmail. Supabase Auth menyimpan email internal berbentuk <code>username@dbx-history.vercel.app</code>; alamat ini tidak dipakai untuk mengirim email. User tetap harus terdaftar di <code>admin_users</code>.</p></div></section>';
     $("#admin-login").addEventListener("submit", async (event) => {
       event.preventDefault();
       const button = $('button[type="submit"]', event.currentTarget);
