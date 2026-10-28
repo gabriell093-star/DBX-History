@@ -444,11 +444,11 @@ async function adminPage() {
     return;
   }
   const { data: membership, error } = await supabase.from("admin_users")
-    .select("user_id").eq("user_id", currentSession.user.id).maybeSingle();
-  if (error || !membership) {
+    .select("user_id,role").eq("user_id", currentSession.user.id).maybeSingle();
+  if (error || !membership || membership.role !== "founder") {
     currentAdmin = false;
     $("#app").innerHTML = '<section class="page-wrap">' +
-      emptyState("Akses belum diberikan", "Anda berhasil masuk, tetapi akun ini belum terdaftar sebagai administrator. Minta pemilik proyek menambahkan UUID pengguna ke tabel admin_users.") +
+      emptyState("Akses Founder diperlukan", "Hanya akun Founder yang dapat mengubah, menghapus, atau memublikasikan isi arsip. Akun ini tidak memiliki izin Founder.") +
       '<button class="btn secondary" id="admin-sign-out">Keluar</button></section>';
     $("#admin-sign-out").addEventListener("click", async () => { await supabase.auth.signOut(); });
     return;
