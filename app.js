@@ -24,7 +24,7 @@ const dateLabel = (value) => {
 const safeUrl = (value) => {
   try {
     const url = new URL(value);
-    return ["https:", "http:"].includes(url.protocol) ? url.href : "";
+    return url.protocol === "https:" ? url.href : "";
   } catch { return ""; }
 };
 function normalizeAdminUsername(value) {
@@ -674,7 +674,10 @@ async function adminPage() {
         });
         if (error) throw error;
       } catch (loginError) {
-        $("#login-message").innerHTML = showNotice(loginError.message || "Login gagal. Coba lagi nanti.", true);
+        const message = loginError instanceof Error && loginError.message.startsWith("Username harus")
+          ? loginError.message
+          : "Username atau kata sandi salah, atau layanan login sementara tidak tersedia.";
+        $("#login-message").innerHTML = showNotice(message, true);
         button.disabled = false;
         button.textContent = "Masuk ke dashboard ↗";
       }
