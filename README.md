@@ -7,14 +7,14 @@ Arsip kompetitif komunitas Death Battle Xtreme berdasarkan PRD dan UI/UX Require
 - Login admin di website memakai **username + kata sandi**, bukan kolom Gmail.
 - Username dipetakan oleh Edge Function username-login ke akun Supabase Auth yang sudah disetujui. Email hanya merupakan identitas backend Supabase; email tidak ditampilkan di formulir situs dan fitur login tidak mengirim email.
 - Dashboard admin untuk mengelola turnamen, Debatter, gelar juara, pertandingan, karakter, tier, partisipasi, penggunaan karakter; unggah gambar ke Storage; audit log.
-- Open Graph/Twitter Card dan gambar preview sosial 1200×630 pada public/dbx-og-image.png.
+- Open Graph/Twitter Card menggunakan gambar raster 1200×630 dari `/dbx-og-image.png` pada domain produksi. Metadata memakai satu URL gambar absolut dan cache key `v=20261028-3`.
 - Konfigurasi static-site Vercel di vercel.json.
 
 ## Menjalankan lokal
 Jalankan python -m http.server 4173 dari root repo lalu buka http://localhost:4173.
 
 ## Login admin
-Login website menampilkan kolom username kosong dengan placeholder `Masukkan username`. Username yang direncanakan adalah `ellias8890` dan `daffxy7778`, dengan role `founder`. Kedua akun belum bisa diaktifkan di database sampai kedua identitas dibuat melalui Supabase Auth; gunakan petunjuk di bawah.
+Login website menampilkan kolom username kosong dengan placeholder `Masukkan username`. Dua akun Founder yang saat ini terdaftar di database adalah `ellias8890` dan `daffxy7778`.
 - Form login browser hanya meminta username dan kata sandi.
 - Edge Function: supabase/functions/username-login/index.ts, aktif pada project qtzailwtwasgbmvinmxz.
 - Tabel pemetaan username dilindungi RLS. Pemetaan hanya dapat dibaca backend Edge Function, bukan klien anon.
@@ -26,10 +26,10 @@ Login website menampilkan kolom username kosong dengan placeholder `Masukkan use
 - Jangan membagikan atau menyimpan kata sandi di GitHub/kode, dan jangan mengaktifkan pendaftaran admin publik.
 
 ### Otorisasi Founder
-1. Database memiliki kolom `admin_users.role` (`founder` atau `editor`) dan hanya mengizinkan satu role Founder.
+1. Database memiliki kolom `admin_users.role` (`founder` atau `editor`); saat ini hanya dua username yang disetujui ditetapkan sebagai Founder.
 2. Kebijakan RLS pada tabel arsip, audit log, dan Storage mengharuskan role `founder`; login biasa tidak memberi akses edit.
 3. Hak INSERT/UPDATE/DELETE ke tabel membership `admin_users` dicabut dari `anon` dan `authenticated`. Tambah atau ubah keanggotaan hanya melalui jalur administratif yang dipercaya.
-4. Pada setup baru, terapkan migrasi utama, `202610280001_admin_usernames.sql`, dan `202610280002_founder_only_access.sql`; pastikan hanya ada satu user Auth yang dimaksudkan sebagai Founder sebelum menjalankan `supabase/setup-first-admin.sql`.
+4. Pada setup baru, terapkan migrasi utama, `202610280001_admin_usernames.sql`, `202610280002_founder_only_access.sql`, dan `202610280003_allow_two_founders.sql`. Untuk project saat ini, dua user Founder sudah aktif.
 5. Jangan pernah menyimpan service-role/secret key pada frontend atau repositori.
 
 ## Database & integritas
