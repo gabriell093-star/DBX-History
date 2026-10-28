@@ -86,6 +86,24 @@ async function queryAllRows(table, columns = "*", order = "id", ascending = true
   }
   return rows;
 }
+
+async function queryRowsEqual(table, columns, filterColumn, filterValue, order = "id", ascending = true, pageSize = 1000) {
+  if (!supabase) throw new Error("Koneksi Supabase belum tersedia.");
+  const rows = [];
+  let start = 0;
+  while (true) {
+    let request = supabase.from(table).select(columns).eq(filterColumn, filterValue);
+    if (order) request = request.order(order, { ascending, nullsFirst: false });
+    if (order && order !== "id") request = request.order("id", { ascending: true });
+    const { data, error } = await request.range(start, start + pageSize - 1);
+    if (error) throw error;
+    const page = data || [];
+    rows.push(...page);
+    if (page.length < pageSize) break;
+    start += pageSize;
+  }
+  return rows;
+}
 function errorView(error, context = "Arsip belum dapat dimuat") {
   console.error(context, error);
   return emptyState(context, "Periksa koneksi dan konfigurasi database, lalu coba muat ulang halaman.",
@@ -333,10 +351,9 @@ async function championDetail(id) {
 
     let characterUses = [];
     try {
-      const { data, error: characterError } = await supabase.from("match_characters")
-        .select("id,match_id,characters(character_name),matches(match_date,round_label,tournaments(tournament_name))")
-        .eq("debatter_id", id).order("created_at", { ascending: false }).limit(200);
-      if (!characterError) characterUses = data || [];
+      characterUses = await queryRowsEqual("match_characters",
+        "id,match_id,characters(character_name),matches(match_date,round_label,tournaments(tournament_name))",
+        "debatter_id", id, "created_at", false);
     } catch (_) {
       characterUses = [];
     }
