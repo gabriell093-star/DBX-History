@@ -68,6 +68,24 @@ async function queryRows(table, columns = "*", order = "created_at", ascending =
   if (error) throw error;
   return data || [];
 }
+
+async function queryAllRows(table, columns = "*", order = "id", ascending = true, pageSize = 1000) {
+  if (!supabase) throw new Error("Koneksi Supabase belum tersedia.");
+  const rows = [];
+  let start = 0;
+  while (true) {
+    let request = supabase.from(table).select(columns);
+    if (order) request = request.order(order, { ascending, nullsFirst: false });
+    if (order && order !== "id") request = request.order("id", { ascending: true });
+    const { data, error } = await request.range(start, start + pageSize - 1);
+    if (error) throw error;
+    const page = data || [];
+    rows.push(...page);
+    if (page.length < pageSize) break;
+    start += pageSize;
+  }
+  return rows;
+}
 function errorView(error, context = "Arsip belum dapat dimuat") {
   console.error(context, error);
   return emptyState(context, "Periksa koneksi dan konfigurasi database, lalu coba muat ulang halaman.",
@@ -114,7 +132,7 @@ function homePage() {
 async function tournamentsPage() {
   setLoading("Mengumpulkan arsip turnamen…");
   try {
-    const tournaments = await queryRows("tournaments",
+    const tournaments = await queryAllRows("tournaments",
       "id,tournament_name,organizer,start_date,end_date,status,tier_id,poster_url,description,tiers(tier_name)",
       "start_date", false);
     const years = [...new Set(tournaments.map((t) => t.start_date ? t.start_date.slice(0, 4) : "").filter(Boolean))].sort().reverse();
@@ -210,7 +228,7 @@ async function tournamentDetail(id) {
 async function championsPage() {
   setLoading("Membuka arsip juara…");
   try {
-    const titles = await queryRows("titles",
+    const titles = await queryAllRows("titles",
       "id,debatter_id,tournament_id,confirmation_status,confirmed_at,debatters(id,display_name),tournaments(id,tournament_name,start_date,tiers(tier_name))",
       "confirmed_at", false);
     const verified = titles.filter((t) => ["verified", "corrected"].includes(t.confirmation_status) && t.debatters);
@@ -285,9 +303,9 @@ async function funFactPage() {
   setLoading("Memeriksa catatan statistik…");
   try {
     const [matches, titles, characterUses] = await Promise.all([
-      queryRows("matches", "id,tournament_id,participant_a,participant_b,winner_id,match_status", null, false, 1000),
-      queryRows("titles", "id,debatter_id,confirmation_status", null, false, 1000),
-      queryRows("match_characters", "id,match_id,debatter_id,character_id,characters(character_name)", null, false, 1000)
+      queryAllRows("matches", "id,tournament_id,participant_a,participant_b,winner_id,match_status,match_date", "match_date", true),
+      queryAllRows("titles", "id,debatter_id,confirmation_status", "id", true),
+      queryAllRows("match_characters", "id,match_id,debatter_id,character_id,characters(character_name)", "id", true)
     ]);
     const validMatches = matches.filter((m) => m.match_status === "completed" && m.winner_id);
     const validTitles = titles.filter((t) => ["verified", "corrected"].includes(t.confirmation_status));
