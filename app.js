@@ -27,12 +27,12 @@ const safeUrl = (value) => {
     return ["https:", "http:"].includes(url.protocol) ? url.href : "";
   } catch { return ""; }
 };
-function usernameToInternalEmail(value) {
+function normalizeAdminUsername(value) {
   const username = String(value || "").trim().toLowerCase();
   if (!/^[a-z0-9][a-z0-9._-]{2,31}$/.test(username)) {
     throw new Error("Username harus 3–32 karakter: huruf kecil, angka, titik, garis bawah, atau tanda hubung.");
   }
-  return username + "@dbx-history.vercel.app";
+  return username;
 }
 const pill = (status) => '<span class="status ' + esc(status || "") + '">' +
   esc(statusLabels[status] || status || "Belum tersedia") + "</span>";
@@ -414,28 +414,31 @@ async function adminPage() {
       '<form id="admin-login"><div class="form-field"><label for="admin-username">Username administrator</label><input id="admin-username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="contoh: gabriel" minlength="3" maxlength="32" required></div>' +
       '<div class="form-field"><label for="admin-password">Kata sandi</label><input id="admin-password" type="password" autocomplete="current-password" required></div>' +
       '<div id="login-message" aria-live="polite"></div><button class="btn" type="submit">Masuk ke dashboard ↗</button></form>' +
-      '<p style="font-size:10px;margin-top:18px">Website menggunakan username dan kata sandi, bukan Gmail. Supabase Auth menyimpan email internal berbentuk <code>username@dbx-history.vercel.app</code>; alamat ini tidak dipakai untuk mengirim email. User tetap harus terdaftar di <code>admin_users</code>.</p></div></section>';
+      '<p style="font-size:10px;margin-top:18px">Masuk menggunakan username, bukan alamat Gmail. Sistem mencocokkan username dengan akun Supabase Auth yang sudah disetujui; akun juga harus terdaftar di <code>admin_users</code>.</p></div></section>';
     $("#admin-login").addEventListener("submit", async (event) => {
       event.preventDefault();
       const button = $('button[type="submit"]', event.currentTarget);
       button.disabled = true;
       button.textContent = "Memverifikasi…";
-      let error;
       try {
-        const email = usernameToInternalEmail($("#admin-username").value);
-        ({ error } = await supabase.auth.signInWithPassword({
-          email, password: $("#admin-password").value
-        }));
-      } catch (validationError) {
-        error = validationError;
-      }
-      if (error) {
-        const message = error.message || "Login gagal.";
-        $("#login-message").innerHTML = showNotice(
-          message.includes("Invalid login credentials")
-            ? "Username atau kata sandi salah. Periksa username yang dipakai saat akun Auth dibuat."
-            : message, true
-        );
+        const username = normalizeAdminUsername($("#admin-username").value);
+        const response = await fetch(SUPABASE_URL + "/functions/v1/username-login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY },
+          body: JSON.stringify({ username, password: $("#admin-password").value })
+        });
+        let result = {};
+        try { result = await response.json(); } catch { /* keep generic login error */ }
+        if (!response.ok || !result.session?.access_token || !result.session?.refresh_token) {
+          throw new Error(result.error || "Username atau kata sandi salah.");
+        }
+        const { error } = await supabase.auth.setSession({
+          access_token: result.session.access_token,
+          refresh_token: result.session.refresh_token
+        });
+        if (error) throw error;
+      } catch (loginError) {
+        $("#login-message").innerHTML = showNotice(loginError.message || "Login gagal. Coba lagi nanti.", true);
         button.disabled = false;
         button.textContent = "Masuk ke dashboard ↗";
       }
