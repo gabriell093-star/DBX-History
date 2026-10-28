@@ -272,33 +272,144 @@ async function championDetail(id) {
         emptyState("Profil tidak ditemukan", "Profil mungkin belum dipublikasikan.") + "</section>";
       return;
     }
-    const { data: titles, error: titlesError } = await supabase.from("titles")
-      .select("id,confirmation_status,confirmed_at,verification_source,tournaments(id,tournament_name,start_date,tiers(tier_name))")
-      .eq("debatter_id", id).in("confirmation_status", ["verified", "corrected"]).order("confirmed_at", { ascending: false });
-    if (titlesError) throw titlesError;
-    const wins = titles || [];
+
+    const [titleResult, matchesAResult, matchesBResult] = await Promise.all([
+      supabase.from("titles")
+        .select("id,confirmation_status,confirmed_at,verification_source,tournaments(id,tournament_name,start_date,tiers(tier_name))")
+        .eq("debatter_id", id).in("confirmation_status", ["verified", "corrected"])
+        .order("confirmed_at", { ascending: false }),
+      supabase.from("matches")
+        .select("id,tournament_id,participant_a,participant_b,winner_id,match_status,match_date,round_label,score_a,score_b,tournaments(id,tournament_name,start_date)")
+        .eq("participant_a", id).eq("match_status", "completed").not("winner_id", "is", null)
+        .order("match_date", { ascending: true, nullsFirst: false }),
+      supabase.from("matches")
+        .select("id,tournament_id,participant_a,participant_b,winner_id,match_status,match_date,round_label,score_a,score_b,tournaments(id,tournament_name,start_date)")
+        .eq("participant_b", id).eq("match_status", "completed").not("winner_id", "is", null)
+        .order("match_date", { ascending: true, nullsFirst: false })
+    ]);
+    if (titleResult.error) throw titleResult.error;
+    if (matchesAResult.error) throw matchesAResult.error;
+    if (matchesBResult.error) throw matchesBResult.error;
+    const wins = titleResult.data || [];
+    const completedMatches = [...new Map([
+      ...(matchesAResult.data || []),
+      ...(matchesBResult.data || [])
+    ].map((match) => [match.id, match])).values()]
+      .filter((match) => match.match_status === "completed" &&
+        match.winner_id && [match.participant_a, match.participant_b].includes(id));
+    completedMatches.sort((a, b) => {
+      const timeA = a.match_date ? new Date(a.match_date).getTime() : Number.MAX_SAFE_INTEGER;
+      const timeB = b.match_date ? new Date(b.match_date).getTime() : Number.MAX_SAFE_INTEGER;
+      return timeA - timeB;
+    });
+    const winCount = completedMatches.filter((match) => match.winner_id === id).length;
+    const lossCount = completedMatches.length - winCount;
+    const winRate = completedMatches.length ? (winCount / completedMatches.length * 100).toFixed(1) + "%" : "";
+    const hasCompleteDateOrder = completedMatches.length > 0 && completedMatches.every((match) => Boolean(match.match_date));
+    let currentStreak = 0;
+    let longestStreak = 0;
+    if (hasCompleteDateOrder) {
+      completedMatches.forEach((match) => {
+        if (match.winner_id === id) {
+          currentStreak += 1;
+          longestStreak = Math.max(longestStreak, currentStreak);
+        } else {
+          currentStreak = 0;
+        }
+      });
+    }
+
+    const opponentIds = [...new Set(completedMatches.map((match) =>
+      match.participant_a === id ? match.participant_b : match.participant_a
+    ))];
+    const opponentNames = {};
+    if (opponentIds.length) {
+      const { data: opponents, error: opponentError } = await supabase
+        .from("debatters").select("id,display_name").in("id", opponentIds);
+      if (!opponentError) (opponents || []).forEach((opponent) => {
+        opponentNames[opponent.id] = opponent.display_name;
+      });
+    }
+
+    let characterUses = [];
+    try {
+      const { data, error: characterError } = await supabase.from("match_characters")
+        .select("id,match_id,characters(character_name),matches(match_date,round_label,tournaments(tournament_name))")
+        .eq("debatter_id", id).order("created_at", { ascending: false }).limit(200);
+      if (!characterError) characterUses = data || [];
+    } catch (_) {
+      characterUses = [];
+    }
+    const characterTally = {};
+    characterUses.forEach((entry) => {
+      const name = entry.characters?.character_name;
+      if (name) characterTally[name] = (characterTally[name] || 0) + 1;
+    });
+    const topCharacters = Object.entries(characterTally).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
     const profileImage = safeUrl(person.photo_url);
+    const matchHistory = completedMatches.length
+      ? '<div class="archive-list">' + completedMatches.slice(-8).reverse().map((match, index) => {
+        const opponentId = match.participant_a === id ? match.participant_b : match.participant_a;
+        const won = match.winner_id === id;
+        const ownScore = match.participant_a === id ? match.score_a : match.score_b;
+        const opponentScore = match.participant_a === id ? match.score_b : match.score_a;
+        const score = ownScore != null && opponentScore != null
+          ? String(ownScore) + "–" + String(opponentScore)
+          : "Skor belum tersedia";
+        const date = match.match_date ? dateLabel(match.match_date.slice(0, 10)) : "Tanggal belum tersedia";
+        return '<a class="archive-row" href="#/tournaments/' + esc(match.tournament_id) + '">' +
+          '<span class="row-number">' + String(index + 1).padStart(2, "0") + '</span><div>' +
+          '<div class="row-title">' + esc(match.tournaments?.tournament_name || "Turnamen") + '</div>' +
+          '<div class="row-meta"><span>' + esc(match.round_label || "Pertandingan selesai") + '</span><span>' +
+          esc(date) + '</span><span>' + esc(score) + '</span><span>' +
+          esc(opponentNames[opponentId] || "Identitas lawan belum dipublikasikan") + '</span></div></div>' +
+          '<span class="status ' + (won ? "completed" : "cancelled") + '">' + (won ? "Menang" : "Kalah") + '</span></a>';
+      }).join("") + "</div>"
+      : emptyState("Belum ada pertandingan selesai", "Riwayat pertandingan akan muncul setelah hasil valid dipublikasikan.");
+    const statCards = completedMatches.length
+      ? '<div class="stat-grid">' +
+        '<article class="stat-card"><div class="stat-label">Pertandingan selesai</div><div class="stat-value">' + completedMatches.length + '</div><p>Catatan pertandingan publik dengan pemenang valid.</p></article>' +
+        '<article class="stat-card"><div class="stat-label">Kemenangan</div><div class="stat-value">' + winCount + '</div><p>Menang pada pertandingan selesai yang tercatat.</p></article>' +
+        '<article class="stat-card"><div class="stat-label">Kekalahan</div><div class="stat-value">' + lossCount + '</div><p>Kalah pada pertandingan selesai yang tercatat.</p></article>' +
+        '<article class="stat-card"><div class="stat-label">Win rate</div><div class="stat-value">' + esc(winRate) + '</div><p>Kemenangan ÷ pertandingan selesai yang tersedia.</p></article>' +
+        (hasCompleteDateOrder ? '<article class="stat-card"><div class="stat-label">Win streak terpanjang</div><div class="stat-value">' + longestStreak + '</div><p>Urutan pertandingan bertanggal dalam arsip yang tersedia.</p></article>' : "") +
+        '</div><div class="notice">Cakupan statistik: pertandingan selesai yang dipublikasikan. Nilai ini bukan rekor sepanjang masa jika arsip tidak lengkap.</div>'
+      : emptyState("Statistik belum tersedia", "Tidak ada pertandingan selesai dengan pemenang valid untuk profil ini.");
+    const characterSummary = topCharacters.length
+      ? '<div class="archive-list">' + topCharacters.map((entry, index) =>
+        '<div class="archive-row"><span class="row-number">' + String(index + 1).padStart(2, "0") +
+        '</span><div><div class="row-title">' + esc(entry[0]) + '</div><div class="row-meta"><span>' +
+        entry[1] + ' catatan penggunaan</span></div></div></div>').join("") + '</div>'
+      : emptyState("Penggunaan karakter belum tersedia", "Karakter hanya ditampilkan jika tercatat pada pertandingan yang sudah dipublikasikan.");
+
     $("#app").innerHTML = '<section class="page-wrap"><a class="detail-back" href="#/champions">← Kembali ke arsip juara</a>' +
       '<div class="detail-layout"><article class="detail-main"><div class="eyebrow">Champion profile / S1</div>' +
-      (profileImage ? '<img src="' + esc(profileImage) + '" alt="Foto ' + esc(person.display_name) + '" style="width:110px;height:110px;object-fit:cover;border-radius:16px;margin:18px 0">' : "") +
+      (profileImage ? '<img src="' + esc(profileImage) + '" alt="Foto ' + esc(person.display_name) + '" class="champion-profile-image" loading="lazy" decoding="async">' : "") +
       '<h1>' + esc(person.display_name) + '</h1>' + (person.description ? "<p>" + esc(person.description) + "</p>" : "") +
-      "<h2>Riwayat gelar</h2>" + (wins.length
-        ? '<div class="archive-list">' + wins.map((title, i) =>
+      '<h2>Statistik pertandingan</h2>' + statCards +
+      '<h2>Riwayat pertandingan</h2>' + matchHistory +
+      '<h2>Penggunaan karakter</h2>' + characterSummary +
+      '<h2>Riwayat gelar</h2>' + (wins.length
+        ? '<div class="archive-list">' + wins.map((title, index) =>
           '<a class="archive-row" href="#/tournaments/' + esc(title.tournaments?.id || "") + '"><span class="row-number">' +
-          String(i + 1).padStart(2, "0") + '</span><div><div class="row-title">' +
+          String(index + 1).padStart(2, "0") + '</span><div><div class="row-title">' +
           esc(title.tournaments?.tournament_name || "Turnamen") + '</div><div class="row-meta"><span>' +
           esc(dateLabel(title.tournaments?.start_date)) + '</span><span>' +
           esc(title.tournaments?.tiers?.tier_name || "Tier belum tersedia") +
-          '</span></div></div><span class="status completed">Terverifikasi</span></a>').join("") + "</div>"
+          '</span><span>' + (title.confirmation_status === "corrected" ? "Status: dikoreksi" : "Status: terverifikasi") +
+          '</span></div></div><span class="status completed">' +
+          (title.confirmation_status === "corrected" ? "Dikoreksi" : "Terverifikasi") + '</span></a>').join("") + "</div>"
         : emptyState("Belum ada gelar terverifikasi", "Riwayat gelar yang dikonfirmasi akan muncul di sini.")) +
       '</article><aside class="detail-panel"><h3>Identitas Debatter</h3><div class="detail-item"><span>Nama panggung</span><strong>' +
-      esc(person.display_name) + '</strong></div><div class="detail-item"><span>Gelar terverifikasi</span><strong>' +
+      esc(person.display_name) + '</strong></div><div class="detail-item"><span>Gelar terverifikasi atau dikoreksi</span><strong>' +
       wins.length + '</strong></div><div class="detail-item"><span>Verifikasi</span><strong>Hanya gelar yang telah dikonfirmasi tampil pada arsip publik.</strong></div></aside></div></section>';
   } catch (error) {
     $("#app").innerHTML = '<section class="page-wrap">' + errorView(error, "Profil belum dapat dimuat") + "</section>";
     wireRetry();
   }
 }
+
 async function funFactPage() {
   setLoading("Memeriksa catatan statistik…");
   try {
