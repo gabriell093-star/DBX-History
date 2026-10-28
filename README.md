@@ -18,12 +18,8 @@ Login website menampilkan kolom username kosong dengan placeholder `Masukkan use
 - Form login browser hanya meminta username dan kata sandi.
 - Edge Function: supabase/functions/username-login/index.ts, aktif pada project qtzailwtwasgbmvinmxz.
 - Tabel pemetaan username dilindungi RLS. Pemetaan hanya dapat dibaca backend Edge Function, bukan klien anon.
-- Untuk menggunakan username tanpa Gmail di formulir, buat dua akun backend di Supabase Dashboard → Authentication → Users → Add user → Create new user:
-  - Email internal: `ellias8890@dbx-history.vercel.app`; username website: `Ellias8890`.
-  - Email internal: `daffxy7778@dbx-history.vercel.app`; username website: `Daffxy7778`.
-  - Masukkan kata sandi sendiri di Dashboard; aktifkan **Auto Confirm User** jika opsinya tersedia. Alias tersebut bukan kotak surat dan tidak menerima email.
-- Setelah KEDUA user dibuat dan dikonfirmasi, buka **SQL Editor** dan jalankan isi file `supabase/setup-two-founders.sql`. Skrip memeriksa kedua akun sebelum perubahan, menghapus membership admin lama, lalu menetapkan hanya dua user tersebut sebagai Founder. Jika salah satu tidak ditemukan/terkonfirmasi, skrip berhenti tanpa mengubah membership.
-- Jangan membagikan atau menyimpan kata sandi di GitHub/kode, dan jangan mengaktifkan pendaftaran admin publik.
+- Akun Founder saat ini sudah dibuat dan terdaftar di `public.admin_users` serta `public.admin_usernames`. Login dengan salah satu username di atas dan kata sandi yang sudah Anda tetapkan. Jangan menuliskan kata sandi di chat atau repo.
+- Untuk menyiapkan instalasi baru, buat kedua akun Auth dengan email alias internal yang dijelaskan pada `supabase/setup-two-founders.sql`, konfirmasi keduanya, lalu jalankan skrip tersebut di SQL Editor.
 
 ### Otorisasi Founder
 1. Database memiliki kolom `admin_users.role` (`founder` atau `editor`); saat ini hanya dua username yang disetujui ditetapkan sebagai Founder.
@@ -32,11 +28,14 @@ Login website menampilkan kolom username kosong dengan placeholder `Masukkan use
 4. Pada setup baru, terapkan migrasi utama, `202610280001_admin_usernames.sql`, `202610280002_founder_only_access.sql`, dan `202610280003_allow_two_founders.sql`. Untuk project saat ini, dua user Founder sudah aktif.
 5. Jangan pernah menyimpan service-role/secret key pada frontend atau repositori.
 
+## Audit PRD/UI/UX
+Lihat [`docs/prd-uiux-audit.md`](docs/prd-uiux-audit.md) untuk status fitur per PRD, temuan keamanan, kekurangan yang belum terverifikasi, dan prioritas berikutnya.
+
 ## Database & integritas
 Semua tabel publik memakai RLS; gelar hanya dipublikasikan untuk status verified atau corrected dan jika Debatter serta turnamennya dipublikasikan. Statistik menggunakan data yang tersedia dan tidak mengklaim rekor sepanjang masa bila arsip belum lengkap. Data historis tidak diisi dengan angka rekaan.
 
 ## Share preview
-Tag Open Graph dan Twitter Card tersedia di index.html; gambar pratinjau menggunakan URL absolut GitHub Raw. Platform media sosial dapat menyimpan cache metadata lama; lakukan scrape ulang jika preview lama masih muncul.
+Tag Open Graph dan Twitter Card tersedia di `index.html`. Gambar pratinjau utama disajikan dari `https://dbx-history.vercel.app/dbx-og-image.png?v=20261028-3`, sehingga crawler dapat mengambil aset dari root domain produksi. Untuk menguji ulang WhatsApp setelah deployment, bagikan URL baru `https://dbx-history.vercel.app/?share=20261028-3`. Preview lama dapat tetap tersimpan di cache WhatsApp meskipun metadata website telah berubah.
 
 ## Deploy Vercel
 - Repository: gabriell093-star/DBX-History
