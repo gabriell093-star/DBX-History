@@ -45,8 +45,6 @@ const emptyState = (title, description, extra = "") =>
   esc(title) + "</h2><p>" + esc(description) + "</p>" + extra + "</div>";
 const showNotice = (message, isError = false) =>
   '<div class="notice ' + (isError ? "error" : "success") + '" role="status">' + esc(message) + "</div>";
-const showNotice = (message, isError = false) =>
-  '<div class="notice ' + (isError ? "error" : "success") + '" role="status">' + esc(message) + "</div>";
 
 function toast(message) {
   $(".toast")?.remove();
