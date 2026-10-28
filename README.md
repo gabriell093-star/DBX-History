@@ -14,11 +14,16 @@ Arsip kompetitif komunitas Death Battle Xtreme berdasarkan PRD dan UI/UX Require
 Jalankan python -m http.server 4173 dari root repo lalu buka http://localhost:4173.
 
 ## Login admin
-Akun Auth yang sudah ada pada project tersambung telah dipetakan menjadi username **gabriel** dengan role **founder**. Gunakan username `gabriel` dan kata sandi akun Supabase Auth yang dibuat sebelumnya.
+Login website menampilkan kolom username kosong dengan placeholder `Masukkan username`. Username yang direncanakan adalah `ellias8890` dan `daffxy7778`, dengan role `founder`. Kedua akun belum bisa diaktifkan di database sampai kedua identitas dibuat melalui Supabase Auth; gunakan petunjuk di bawah.
 - Form login browser hanya meminta username dan kata sandi.
 - Edge Function: supabase/functions/username-login/index.ts, aktif pada project qtzailwtwasgbmvinmxz.
 - Tabel pemetaan username dilindungi RLS. Pemetaan hanya dapat dibaca backend Edge Function, bukan klien anon.
-- Jika kata sandi tidak diketahui, jangan bagikan kata sandi di chat. Reset kata sandi melalui Supabase Dashboard. Karena email backend mungkin Gmail, reset via email tetap memakai alamat Auth tersebut. Jika benar-benar ingin tanpa alamat Gmail yang tersimpan, buat akun internal baru dengan alias email non-Gmail dan auto-confirm, lalu perbarui mapping administrator.
+- Untuk menggunakan username tanpa Gmail di formulir, buat dua akun backend di Supabase Dashboard → Authentication → Users → Add user → Create new user:
+  - Email internal: `ellias8890@dbx-history.vercel.app`; username website: `Ellias8890`.
+  - Email internal: `daffxy7778@dbx-history.vercel.app`; username website: `Daffxy7778`.
+  - Masukkan kata sandi sendiri di Dashboard; aktifkan **Auto Confirm User** jika opsinya tersedia. Alias tersebut bukan kotak surat dan tidak menerima email.
+- Setelah KEDUA user dibuat dan dikonfirmasi, buka **SQL Editor** dan jalankan isi file `supabase/setup-two-founders.sql`. Skrip memeriksa kedua akun sebelum perubahan, menghapus membership admin lama, lalu menetapkan hanya dua user tersebut sebagai Founder. Jika salah satu tidak ditemukan/terkonfirmasi, skrip berhenti tanpa mengubah membership.
+- Jangan membagikan atau menyimpan kata sandi di GitHub/kode, dan jangan mengaktifkan pendaftaran admin publik.
 
 ### Otorisasi Founder
 1. Database memiliki kolom `admin_users.role` (`founder` atau `editor`) dan hanya mengizinkan satu role Founder.
