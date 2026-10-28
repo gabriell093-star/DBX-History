@@ -424,7 +424,7 @@ async function adminPage() {
       '<form id="admin-login"><div class="form-field"><label for="admin-username">Username administrator</label><input id="admin-username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Masukkan username" minlength="3" maxlength="32" required></div>' +
       '<div class="form-field"><label for="admin-password">Kata sandi</label><input id="admin-password" type="password" autocomplete="current-password" required></div>' +
       '<div id="login-message" aria-live="polite"></div><button class="btn" type="submit">Masuk ke dashboard ↗</button></form>' +
-      '<p style="font-size:10px;margin-top:18px">Masuk dengan username <strong>gabriel</strong> dan kata sandi akun yang telah disiapkan. Gmail tidak diminta pada halaman ini. Hak edit diperiksa kembali oleh database.</p></div></section>';
+      '<p style="font-size:10px;margin-top:18px">Gunakan username yang telah didaftarkan Founder dan kata sandi akun terkait. Gmail tidak diminta pada formulir website. Hak edit diperiksa kembali oleh database.</p></div></section>';
     $("#admin-login").addEventListener("submit", async (event) => {
       event.preventDefault();
       const button = $('button[type="submit"]', event.currentTarget);
