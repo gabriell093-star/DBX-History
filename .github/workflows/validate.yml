@@ -35,6 +35,7 @@ jobs:
           function_js = Path("supabase/functions/username-login/index.ts").read_text(encoding="utf-8")
           config = json.loads(Path("vercel.json").read_text(encoding="utf-8"))
           image = Path("public/dbx-og-image.png").read_bytes()
+          poster = Path("public/dbx-s1-registration-poster.jpg").read_bytes()
 
           assert '<html lang="id">' in html, "HTML language should be Indonesian"
           assert 'property="og:title"' in html, "Missing Open Graph title"
@@ -47,8 +48,13 @@ jobs:
           assert (width, height) == (1200, 630), f"Expected committed 1200x630 image, got {width}x{height}"
           assert "admin_users" in js and "/functions/v1/username-login" in js, "Username login integration missing"
           assert "signInWithPassword" in function_js and "admin_usernames" in function_js, "Backend username login missing"
+          assert poster[:2] == bytes([255, 216]), "DBX registration poster must be a JPEG"
+          assert "dbx-s1-registration-poster.jpg" in js, "Registration poster is not referenced by the tournament page"
+          assert "wa.me/628828671206" in js and "wa.me/6281225974441" in js, "Both WhatsApp registration links must be present"
+          assert 'placeholder="Masukkan username"' in js, "Admin username field should not contain a preset user"
+          assert "setup-two-founders.sql" in Path("README.md").read_text(encoding="utf-8"), "Founder setup instructions missing"
           assert config.get("headers"), "Expected static-site security headers in vercel.json"
           assert config.get("outputDirectory") == ".", "Vercel must serve the repository root containing index.html"
           assert any(item.get("destination") == "/index.html" for item in config.get("rewrites", [])), "Missing SPA fallback rewrite"
-          print(f"OK: metadata and social preview PNG ({width}x{height}); username login hooks and static Vercel config parsed.")
+          print(f"OK: metadata and social preview PNG ({width}x{height}); username login, tournament poster, WhatsApp links and static Vercel config parsed.")
           PY
