@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1067" viewBox="0 0 800 1067" role="img" aria-labelledby="title desc">
+<title id="title">Open Registration — Death Battle Xtreme Season 1</title>
+<desc id="desc">Poster registrasi DBX Season 1. Total hadiah Rp100.000: juara pertama Rp50.000, kedua Rp30.000, ketiga Rp20.000. Registrasi 1–3 Oktober. Hubungi WhatsApp 08828671206 atau 081225974441.</desc>
+<defs>
+  <pattern id="grain" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M0 20L20 0M-5 5L5 -5M15 25L25 15" stroke="#e5dfd8" stroke-width="1.2"/></pattern>
+  <g id="logo" fill="#111111">
+    <path d="M703 556 1208 556 1345 458 1370 405 1309 343 1392 285 1403 268 1410 252 1335 166 876 167Z"/>
+    <path d="M917 455 943 397 1171 397 1190 422 1156 456Z" fill="#fff"/>
+    <path d="M978 305 1001 254 1214 254 1231 275 1199 306Z" fill="#fff"/>
+    <path d="M53 621 209 570 262 558 544 556 716 454 797 267 703 166 234 167 270 211Z"/>
+    <path d="M627 294 577 398 470 455 294 456 388 260 596 257Z" fill="#fff"/>
+    <path d="M2152 35 2009 95 1798 179 1690 258 1606 166 1397 166 1562 356 1131 686 1336 595 1509 522 1637 432 1751 556 1957 556 1758 336 2044 115Z"/>
+  </g>
+</defs>
+<rect width="800" height="1067" fill="#fff"/>
+<rect width="800" height="1067" fill="url(#grain)" opacity=".12"/>
+<g fill="none" stroke="#d6d0ca" stroke-width="13" stroke-linejoin="round" opacity=".8">
+ <path d="M-55 80 95 -30 195 95 44 215 -40 175 93 340 12 526 155 670 82 822 -30 930"/>
+ <path d="M230 -45 315 72 228 154 341 238 286 354 392 472 340 598 442 707 394 840 480 930"/>
+ <path d="M550 -25 625 83 526 184 625 273 570 370 658 465 603 572 702 671 628 800 741 930"/>
+ <path d="M810 85 716 20 664 139 751 236 690 329 780 445"/>
+</g>
+<g transform="translate(315 4) scale(.078)"><use href="#logo"/></g>
+<text x="400" y="215" text-anchor="middle" font-family="Impact,'Arial Narrow',sans-serif" font-size="91" font-weight="900" fill="#000">OPEN</text>
+<text x="400" y="319" text-anchor="middle" font-family="Impact,'Arial Narrow',sans-serif" font-size="82" font-weight="900" letter-spacing="-2" fill="#000">REGISTRATION!</text>
+<rect x="96" y="342" width="608" height="72" fill="#000"/>
+<text x="400" y="390" text-anchor="middle" font-family="Impact,'Arial Narrow',sans-serif" font-size="35" font-weight="900" fill="#fff">DEATH BATTLE XTREME SEASON 1</text>
+<text x="400" y="474" text-anchor="middle" font-family="Impact,'Arial Narrow',sans-serif" font-size="34" font-style="italic" font-weight="900" fill="#000">TOTAL HADIAH:</text>
+<text x="400" y="575" text-anchor="middle" font-family="Impact,'Arial Narrow',sans-serif" font-size="124" font-weight="900" letter-spacing="-3" fill="#000">RP100.000</text>
+<rect x="105" y="593" width="590" height="64" fill="#000"/>
+<text x="400" y="635" text-anchor="middle" font-family="Impact,'Arial Narrow',sans-serif" font-size="30" font-weight="900" fill="#fff">1ST: 50.000   2ND: 30.000   3RD: 20.000</text>
+<text x="400" y="722" text-anchor="middle" font-family="Impact,'Arial Narrow',sans-serif" font-size="52" font-weight="900" fill="#000">REGISTER</text>
+<text x="400" y="776" text-anchor="middle" font-family="Impact,'Arial Narrow',sans-serif" font-size="44" font-weight="900" fill="#000">1–3 OKT</text>
+<rect x="58" y="811" width="684" height="162" rx="31" fill="#000"/>
+<rect x="75" y="827" width="183" height="130" rx="17" fill="#fff"/>
+<text x="166" y="899" text-anchor="middle" font-family="Impact,'Arial Narrow',sans-serif" font-size="25" font-weight="900" fill="#000">PENDAFTARAN:</text>
+<g fill="#20c85a">
+ <rect x="275" y="829" width="58" height="58" rx="9"/>
+ <rect x="275" y="895" width="58" height="58" rx="9"/>
+</g>
+<g fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+ <path d="M290 845a16 16 0 1 0 5-8l-5 1 1 6Z M290 844l-3 7 7-2 M293 839q7-5 13 2q4 7-2 13q-7 5-13-1 M297 844l3 4 4-3"/>
+ <path d="M290 911a16 16 0 1 0 5-8l-5 1 1 6Z M290 910l-3 7 7-2 M293 905q7-5 13 2q4 7-2 13q-7 5-13-1 M297 910l3 4 4-3"/>
+</g>
+<text x="347" y="866" font-family="Impact,'Arial Narrow',sans-serif" font-size="34" font-weight="900" fill="#fff">08828671206</text>
+<text x="347" y="933" font-family="Impact,'Arial Narrow',sans-serif" font-size="34" font-weight="900" fill="#fff">081225974441</text>
+<g transform="translate(570 868) scale(.06)" fill="#fff">
+ <path d="M703 556 1208 556 1345 458 1370 405 1309 343 1392 285 1403 268 1410 252 1335 166 876 167Z"/>
+ <path d="M917 455 943 397 1171 397 1190 422 1156 456Z" fill="#000"/>
+ <path d="M978 305 1001 254 1214 254 1231 275 1199 306Z" fill="#000"/>
+ <path d="M53 621 209 570 262 558 544 556 716 454 797 267 703 166 234 167 270 211Z"/>
+ <path d="M627 294 577 398 470 455 294 456 388 260 596 257Z" fill="#000"/>
+ <path d="M2152 35 2009 95 1798 179 1690 258 1606 166 1397 166 1562 356 1131 686 1336 595 1509 522 1637 432 1751 556 1957 556 1758 336 2044 115Z"/>
+</g>
+<text x="400" y="1013" text-anchor="middle" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#111">masa registrasi dapat berubah seketika*</text>
+</svg>
