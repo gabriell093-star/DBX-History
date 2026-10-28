@@ -130,6 +130,18 @@ async function tournamentsPage() {
       : emptyState("Arsip sedang disiapkan", "Belum ada turnamen yang dipublikasikan. Informasi akan muncul setelah diverifikasi administrator.");
     $("#app").innerHTML = '<section class="page-wrap">' +
       heading("01 / Tournament archive", "Informasi<br>turnamen.", "Jadwal, status, dan dokumentasi kompetisi dalam satu arsip.", String(tournaments.length).padStart(2, "0") + " RECORDS") +
+      '<section class="registration-feature" aria-labelledby="registration-title">' +
+        '<div class="registration-poster-wrap"><img class="registration-poster" src="./public/dbx-s1-registration-poster.jpg" alt="Poster Open Registration Death Battle Xtreme Season 1. Total hadiah Rp100.000: juara pertama Rp50.000, kedua Rp30.000, ketiga Rp20.000."></div>' +
+        '<div class="registration-info"><div class="eyebrow">Featured event / DBX S1</div>' +
+        '<span class="registration-kicker">DEATH BATTLE XTREME</span>' +
+        '<h2 id="registration-title">Open Registration<br><em>Season 1</em></h2>' +
+        '<p class="registration-intro">Informasi pendaftaran dan hadiah berdasarkan poster yang diberikan penyelenggara.</p>' +
+        '<div class="registration-prize"><span>Total hadiah</span><strong>Rp100.000</strong><div class="prize-breakdown"><span>1st <b>Rp50.000</b></span><span>2nd <b>Rp30.000</b></span><span>3rd <b>Rp20.000</b></span></div></div>' +
+        '<div class="registration-detail"><span>Periode pada poster</span><strong>1–3 Oktober</strong></div>' +
+        '<p class="registration-note">Tahun tidak dicantumkan pada poster, dan masa registrasi dapat berubah. Konfirmasikan status terbaru langsung kepada panitia melalui WhatsApp.</p>' +
+        '<div class="registration-actions"><a class="btn" href="https://wa.me/628828671206?text=Halo%20panitia%20DBX%2C%20saya%20ingin%20bertanya%20mengenai%20registrasi%20Death%20Battle%20Xtreme%20Season%201." target="_blank" rel="noopener noreferrer">WhatsApp 08828671206 ↗</a>' +
+        '<a class="btn secondary" href="https://wa.me/6281225974441?text=Halo%20panitia%20DBX%2C%20saya%20ingin%20bertanya%20mengenai%20registrasi%20Death%20Battle%20Xtreme%20Season%201." target="_blank" rel="noopener noreferrer">WhatsApp 081225974441 ↗</a></div>' +
+        '</div></section>' +
       '<div class="toolbar"><input class="field search-field" id="tournament-search" placeholder="Cari turnamen atau penyelenggara…" aria-label="Cari turnamen">' +
       '<select class="field" id="tournament-status" aria-label="Filter status"><option value="">Semua status</option>' +
       Object.keys(statusLabels).map((key) => '<option value="' + key + '">' + statusLabels[key] + "</option>").join("") +
@@ -409,7 +421,7 @@ async function adminPage() {
   if (!currentSession) {
     $("#app").innerHTML = '<section class="page-wrap"><div class="login-card"><div class="eyebrow">Private area / DBX</div>' +
       '<h2>Admin sign in.</h2><p>Area khusus Founder. Akun biasa tidak dapat mengubah, menghapus, atau memublikasikan isi arsip.</p>' +
-      '<form id="admin-login"><div class="form-field"><label for="admin-username">Username administrator</label><input id="admin-username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="gabriel" minlength="3" maxlength="32" required></div>' +
+      '<form id="admin-login"><div class="form-field"><label for="admin-username">Username administrator</label><input id="admin-username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Masukkan username" minlength="3" maxlength="32" required></div>' +
       '<div class="form-field"><label for="admin-password">Kata sandi</label><input id="admin-password" type="password" autocomplete="current-password" required></div>' +
       '<div id="login-message" aria-live="polite"></div><button class="btn" type="submit">Masuk ke dashboard ↗</button></form>' +
       '<p style="font-size:10px;margin-top:18px">Masuk dengan username <strong>gabriel</strong> dan kata sandi akun yang telah disiapkan. Gmail tidak diminta pada halaman ini. Hak edit diperiksa kembali oleh database.</p></div></section>';
