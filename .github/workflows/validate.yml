@@ -48,5 +48,7 @@ jobs:
           assert "admin_users" in js and "/functions/v1/username-login" in js, "Username login integration missing"
           assert "signInWithPassword" in function_js and "admin_usernames" in function_js, "Backend username login missing"
           assert config.get("headers"), "Expected static-site security headers in vercel.json"
+          assert config.get("outputDirectory") == ".", "Vercel must serve the repository root containing index.html"
+          assert any(item.get("destination") == "/index.html" for item in config.get("rewrites", [])), "Missing SPA fallback rewrite"
           print(f"OK: metadata and social preview PNG ({width}x{height}); username login hooks and static Vercel config parsed.")
           PY
