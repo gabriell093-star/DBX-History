@@ -131,7 +131,7 @@ async function tournamentsPage() {
     $("#app").innerHTML = '<section class="page-wrap">' +
       heading("01 / Tournament archive", "Informasi<br>turnamen.", "Jadwal, status, dan dokumentasi kompetisi dalam satu arsip.", String(tournaments.length).padStart(2, "0") + " RECORDS") +
       '<section class="registration-feature" aria-labelledby="registration-title">' +
-        '<div class="registration-poster-wrap"><img class="registration-poster" src="./public/dbx-s1-registration-poster.svg" alt="Poster Open Registration Death Battle Xtreme Season 1. Total hadiah Rp100.000: juara pertama Rp50.000, kedua Rp30.000, ketiga Rp20.000."></div>' +
+        '<div class="registration-poster-wrap"><img class="registration-poster" src="./dbx-s1-registration-poster.svg" alt="Poster Open Registration Death Battle Xtreme Season 1. Total hadiah Rp100.000: juara pertama Rp50.000, kedua Rp30.000, ketiga Rp20.000."></div>' +
         '<div class="registration-info"><div class="eyebrow">Featured event / DBX S1</div>' +
         '<span class="registration-kicker">DEATH BATTLE XTREME</span>' +
         '<h2 id="registration-title">Open Registration<br><em>Season 1</em></h2>' +
