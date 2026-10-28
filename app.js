@@ -408,11 +408,11 @@ async function adminPage() {
   }
   if (!currentSession) {
     $("#app").innerHTML = '<section class="page-wrap"><div class="login-card"><div class="eyebrow">Private area / DBX</div>' +
-      '<h2>Admin sign in.</h2><p>Area ini hanya untuk founder atau administrator yang telah diberi izin. Login tidak otomatis memberi hak admin.</p>' +
-      '<form id="admin-login"><div class="form-field"><label for="admin-username">Username administrator</label><input id="admin-username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="contoh: gabriel" minlength="3" maxlength="32" required></div>' +
+      '<h2>Admin sign in.</h2><p>Area khusus Founder. Akun biasa tidak dapat mengubah, menghapus, atau memublikasikan isi arsip.</p>' +
+      '<form id="admin-login"><div class="form-field"><label for="admin-username">Username administrator</label><input id="admin-username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="gabriel" minlength="3" maxlength="32" required></div>' +
       '<div class="form-field"><label for="admin-password">Kata sandi</label><input id="admin-password" type="password" autocomplete="current-password" required></div>' +
       '<div id="login-message" aria-live="polite"></div><button class="btn" type="submit">Masuk ke dashboard ↗</button></form>' +
-      '<p style="font-size:10px;margin-top:18px">Masuk menggunakan username, bukan alamat Gmail. Sistem mencocokkan username dengan akun Supabase Auth yang sudah disetujui; akun juga harus terdaftar di <code>admin_users</code>.</p></div></section>';
+      '<p style="font-size:10px;margin-top:18px">Masuk dengan username <strong>gabriel</strong> dan kata sandi akun yang telah disiapkan. Gmail tidak diminta pada halaman ini. Hak edit diperiksa kembali oleh database.</p></div></section>';
     $("#admin-login").addEventListener("submit", async (event) => {
       event.preventDefault();
       const button = $('button[type="submit"]', event.currentTarget);
