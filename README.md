@@ -3,7 +3,7 @@
 Arsip kompetitif komunitas Death Battle Xtreme berdasarkan PRD dan UI/UX Requirements v1.0 (27 Oktober 2026).
 
 ## Aplikasi
-- Website responsif: beranda, arsip dan detail turnamen, daftar juara pertama terverifikasi, profil Debatter, serta statistik dari catatan yang tersedia.
+- Website responsif: beranda, daftar/detail turnamen, daftar juara pertama terverifikasi, profil Debatter dengan riwayat pertandingan dan statistik yang didukung data, serta Fun Fact berbasis arsip.
 - Login admin di website memakai **username + kata sandi**, bukan kolom Gmail.
 - Username dipetakan oleh Edge Function username-login ke akun Supabase Auth yang sudah disetujui. Email hanya merupakan identitas backend Supabase; email tidak ditampilkan di formulir situs dan fitur login tidak mengirim email.
 - Dashboard admin untuk mengelola turnamen, Debatter, gelar juara, pertandingan, karakter, tier, partisipasi, penggunaan karakter; unggah gambar ke Storage; audit log.
@@ -25,14 +25,14 @@ Login website menampilkan kolom username kosong dengan placeholder `Masukkan use
 1. Database memiliki kolom `admin_users.role` (`founder` atau `editor`); saat ini hanya dua username yang disetujui ditetapkan sebagai Founder.
 2. Kebijakan RLS pada tabel arsip, audit log, dan Storage mengharuskan role `founder`; login biasa tidak memberi akses edit.
 3. Hak INSERT/UPDATE/DELETE ke tabel membership `admin_users` dicabut dari `anon` dan `authenticated`. Tambah atau ubah keanggotaan hanya melalui jalur administratif yang dipercaya.
-4. Pada setup baru, terapkan migrasi utama, `202610280001_admin_usernames.sql`, `202610280002_founder_only_access.sql`, dan `202610280003_allow_two_founders.sql`. Untuk project saat ini, dua user Founder sudah aktif.
+4. Pada setup baru, terapkan migrasi utama, `202610280001_admin_usernames.sql`, `202610280002_founder_only_access.sql`, `202610280003_allow_two_founders.sql`, dan `202610280004_unique_debatter_display_name.sql`. Untuk project saat ini, dua user Founder sudah aktif.
 5. Jangan pernah menyimpan service-role/secret key pada frontend atau repositori.
 
 ## Audit PRD/UI/UX
 Lihat [`docs/prd-uiux-audit.md`](docs/prd-uiux-audit.md) untuk status fitur per PRD, temuan keamanan, kekurangan yang belum terverifikasi, dan prioritas berikutnya.
 
 ## Database & integritas
-Semua tabel publik memakai RLS; gelar hanya dipublikasikan untuk status verified atau corrected dan jika Debatter serta turnamennya dipublikasikan. Statistik menggunakan data yang tersedia dan tidak mengklaim rekor sepanjang masa bila arsip belum lengkap. Data historis tidak diisi dengan angka rekaan.
+Semua tabel publik memakai RLS; gelar hanya dipublikasikan untuk status verified atau corrected dan jika Debatter serta turnamennya dipublikasikan. Database mencegah nama Debatter duplikat setelah normalisasi huruf besar-kecil dan whitespace. Statistik memakai data tersedia, streak memerlukan tanggal, dan cakupan arsip parsial tidak diklaim sebagai rekor sepanjang masa. Data historis tidak diisi dengan angka rekaan.
 
 ## Share preview
 Tag Open Graph dan Twitter Card tersedia di `index.html`. Gambar pratinjau utama disajikan dari `https://dbx-history.vercel.app/dbx-og-image.png?v=20261028-3`, sehingga crawler dapat mengambil aset dari root domain produksi. Untuk menguji ulang WhatsApp setelah deployment, bagikan URL baru `https://dbx-history.vercel.app/?share=20261028-3`. Preview lama dapat tetap tersimpan di cache WhatsApp meskipun metadata website telah berubah.
