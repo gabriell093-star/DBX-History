@@ -799,7 +799,7 @@ async function renderAdminForm(section, record) {
         else payload[f.key] = control.value.trim() || null;
       }
       if (section === "debaters") {
-        const normalizeName = (name) => String(name || "").trim().replace(/\\s+/g, " ").toLocaleLowerCase("id-ID");
+        const normalizeName = (name) => String(name || "").trim().replace(/\s+/g, " ").toLocaleLowerCase("id-ID");
         const existingDebaters = await queryAllRows("debatters", "id,display_name", "display_name", true);
         const duplicate = existingDebaters.find((item) =>
           item.id !== editingRecordId && normalizeName(item.display_name) === normalizeName(payload.display_name)
