@@ -94,3 +94,88 @@ body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; 
   .form-actions { gap: 8px; }
   .toast { left: 14px; right: 14px; bottom: 14px; }
 }
+
+
+/* Featured DBX Season 1 registration block */
+.registration-feature {
+  display: grid;
+  grid-template-columns: minmax(210px, .76fr) minmax(0, 1.24fr);
+  gap: clamp(22px, 4vw, 48px);
+  align-items: center;
+  margin: 0 0 34px;
+  padding: clamp(17px, 3vw, 28px);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--paper);
+  box-shadow: 0 12px 34px #0432220a;
+  overflow: hidden;
+}
+.registration-poster-wrap {
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+  align-self: stretch;
+  align-items: center;
+  padding: clamp(8px, 1.5vw, 16px);
+  border-radius: 12px;
+  background: #f0ece7;
+  border: 1px solid #04322214;
+}
+.registration-poster {
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  max-height: 620px;
+  object-fit: contain;
+  object-position: center;
+  border-radius: 5px;
+  box-shadow: 0 8px 22px #00000016;
+}
+.registration-info { min-width: 0; }
+.registration-kicker {
+  display: inline-block;
+  margin-top: 14px;
+  font: 9px var(--mono);
+  letter-spacing: .16em;
+  color: var(--muted);
+}
+.registration-info h2 {
+  margin: 12px 0;
+  font-size: clamp(29px, 4.3vw, 48px);
+  line-height: 1.05;
+  letter-spacing: -.065em;
+  font-weight: 700;
+}
+.registration-info h2 em { color: #758779; font-style: normal; }
+.registration-intro { margin: 0 0 19px; color: #52675a; font-size: 12px; line-height: 1.8; }
+.registration-prize {
+  padding: 15px;
+  border-radius: 12px;
+  background: var(--g);
+  color: var(--c);
+}
+.registration-prize > span { display:block; font: 9px var(--mono); letter-spacing: .12em; text-transform: uppercase; color:#c6d4ca; }
+.registration-prize > strong { display:block; margin: 3px 0 10px; font-size: clamp(29px, 4.5vw, 44px); line-height: 1.1; letter-spacing: -.055em; }
+.prize-breakdown { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; padding-top: 10px; border-top: 1px solid #ffffff30; }
+.prize-breakdown span { display:grid; gap: 3px; font: 9px var(--mono); color:#c6d4ca; }
+.prize-breakdown b { color:var(--c); font: 700 11px var(--sans); letter-spacing:-.02em; }
+.registration-detail { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:14px 0 8px; }
+.registration-detail span { font-size:11px; color:var(--muted); }
+.registration-detail strong { font-size:12px; }
+.registration-note { margin: 3px 0 15px; color:var(--muted); font-size:10px; line-height:1.7; }
+.registration-actions { display:flex; flex-wrap:wrap; gap:9px; }
+.registration-actions .btn { display:inline-flex; justify-content:center; align-items:center; min-height:42px; line-height:1.45; font-size:10px; }
+.registration-actions .btn.secondary { background:transparent; color:var(--g); }
+@media (max-width: 650px) {
+  .registration-feature { grid-template-columns:minmax(0,1fr); gap:20px; padding:15px; margin-bottom:26px; border-radius:15px; }
+  .registration-poster-wrap { padding:12px; }
+  .registration-poster { width:min(100%, 280px); max-height:none; }
+  .registration-info h2 { font-size:clamp(30px, 9vw, 39px); }
+  .registration-intro { font-size:12px; }
+  .registration-prize { padding:14px; }
+  .prize-breakdown { gap:5px; }
+  .prize-breakdown b { font-size:10px; }
+  .registration-detail { align-items:start; flex-direction:column; gap:3px; }
+  .registration-actions { display:grid; grid-template-columns:minmax(0,1fr); }
+  .registration-actions .btn { width:100%; }
+}
