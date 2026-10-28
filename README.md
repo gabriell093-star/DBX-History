@@ -50,6 +50,6 @@ Repository: `gabriell093-star/DBX-History`, production branch `main`, static sit
 - Framework preset: **Other**
 - Root Directory: repo root
 - Build Command: kosong / autodetect
-- Output Directory: kosong / autodetect
+- Output Directory: `.` (project root; `index.html` berada di root repository)
 
 Domain produksi: `https://dbx-history.vercel.app/`. Jika URL mengembalikan 404 meski domain berstatus valid, periksa deployment `Ready` di Vercel → Deployments, tekan Visit, lalu pastikan alias `dbx-history.vercel.app` terpasang pada deployment Production yang benar.
