@@ -781,6 +781,16 @@ async function renderAdminForm(section, record) {
         else if (f.type === "asset") payload[f.key] = control.value.trim() || null;
         else payload[f.key] = control.value.trim() || null;
       }
+      if (section === "debaters") {
+        const normalizeName = (name) => String(name || "").trim().replace(/\\s+/g, " ").toLocaleLowerCase("id-ID");
+        const existingDebaters = await queryAllRows("debatters", "id,display_name", "display_name", true);
+        const duplicate = existingDebaters.find((item) =>
+          item.id !== editingRecordId && normalizeName(item.display_name) === normalizeName(payload.display_name)
+        );
+        if (duplicate) {
+          throw new Error('Nama panggung "' + payload.display_name.trim() + '" sudah digunakan. Buka profil yang sudah ada agar riwayat gelar tidak terpecah.');
+        }
+      }
       if (section === "tournaments" && payload.registration_open && !safeUrl(payload.registration_url)) {
         throw new Error("Pendaftaran aktif memerlukan URL pendaftaran yang valid.");
       }
@@ -801,6 +811,9 @@ async function renderAdminForm(section, record) {
       const result = editingRecordId
         ? await supabase.from(config.table).update(payload).eq("id", editingRecordId)
         : await supabase.from(config.table).insert(payload);
+      if (result.error?.code === "23505" && String(result.error?.message || "").includes("debaters_display_name_normalized_unique_idx")) {
+        throw new Error("Nama panggung tersebut sudah digunakan. Buka profil yang sudah ada agar riwayat gelar tidak terpecah.");
+      }
       if (result.error) throw result.error;
       toast("Catatan berhasil disimpan.");
       await loadAdminSection(section);
