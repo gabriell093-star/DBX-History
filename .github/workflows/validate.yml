@@ -32,6 +32,7 @@ jobs:
 
           html = Path("index.html").read_text(encoding="utf-8")
           js = Path("app.js").read_text(encoding="utf-8")
+          function_js = Path("supabase/functions/username-login/index.ts").read_text(encoding="utf-8")
           config = json.loads(Path("vercel.json").read_text(encoding="utf-8"))
           image = Path("public/dbx-og-image.png").read_bytes()
 
@@ -43,8 +44,9 @@ jobs:
           assert "public/dbx-og-image.png" in html, "Social preview image path not present"
           assert image[:8] == b"\x89PNG\r\n\x1a\n", "Social preview asset is not PNG"
           width, height = struct.unpack(">II", image[16:24])
-          assert (width, height) == (1200, 630), f"Expected 1200x630 image, got {width}x{height}"
-          assert "admin_users" in js and "signInWithPassword" in js, "Admin auth checks missing"
+          assert (width, height) == (1200, 374), f"Expected committed 1200x374 image, got {width}x{height}"
+          assert "admin_users" in js and "/functions/v1/username-login" in js, "Username login integration missing"
+          assert "signInWithPassword" in function_js and "admin_usernames" in function_js, "Backend username login missing"
           assert config.get("headers"), "Expected static-site security headers in vercel.json"
-          print(f"OK: metadata and social preview PNG ({width}x{height}); static Vercel config parsed.")
+          print(f"OK: metadata and social preview PNG ({width}x{height}); username login hooks and static Vercel config parsed.")
           PY
