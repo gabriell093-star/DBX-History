@@ -795,7 +795,7 @@ async function loadAdminSection(section) {
     '</button><div id="admin-records" class="loading-state">Memuat catatan…</div>';
   $("#new-record").addEventListener("click", () => renderAdminForm(section, null));
   try {
-    const records = await queryRows(config.table, "*", "created_at", false, 300);
+    const records = await queryAllRows(config.table, "*", "created_at", false);
     const relationNames = {};
     for (const f of config.fields.filter((item) => item.type === "relation")) {
       const options = await relationOptions(f);
