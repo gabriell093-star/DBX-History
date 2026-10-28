@@ -255,3 +255,42 @@ body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; 
   #admin-record-form .form-actions .btn { flex: 1 1 auto; }
   .admin-table { min-width: 620px; }
 }
+
+
+/* Source-backed poster presentation for public archive records */
+.archive-row-content { min-width:0; }
+.archive-row-content.has-poster {
+  display:grid;
+  grid-template-columns:70px minmax(0,1fr);
+  gap:13px;
+  align-items:center;
+}
+.archive-row-content:not(.has-poster) { display:block; }
+.archive-poster-thumb {
+  display:block;
+  width:70px;
+  aspect-ratio:3 / 4;
+  object-fit:cover;
+  object-position:center;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:var(--paper);
+}
+.tournament-poster-detail {
+  display:block;
+  width:100%;
+  max-width:460px;
+  max-height:640px;
+  object-fit:contain;
+  object-position:top center;
+  background:var(--paper);
+  border:1px solid var(--line);
+  border-radius:13px;
+  margin:20px 0 24px;
+  box-shadow:0 8px 22px #0432220c;
+}
+@media (max-width:650px) {
+  .archive-row-content.has-poster { grid-template-columns:58px minmax(0,1fr); gap:10px; }
+  .archive-poster-thumb { width:58px; border-radius:7px; }
+  .tournament-poster-detail { max-width:100%; max-height:none; border-radius:11px; margin:16px 0 20px; }
+}
