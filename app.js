@@ -413,44 +413,118 @@ async function championDetail(id) {
 async function funFactPage() {
   setLoading("Memeriksa catatan statistik…");
   try {
-    const [matches, titles, characterUses] = await Promise.all([
+    const [matches, titles, characterUses, participations, debaters] = await Promise.all([
       queryAllRows("matches", "id,tournament_id,participant_a,participant_b,winner_id,match_status,match_date", "match_date", true),
       queryAllRows("titles", "id,debatter_id,confirmation_status", "id", true),
-      queryAllRows("match_characters", "id,match_id,debatter_id,character_id,characters(character_name)", "id", true)
+      queryAllRows("match_characters", "id,match_id,debatter_id,character_id,characters(character_name)", "id", true),
+      queryAllRows("participations", "id,debatter_id,tournament_id,participation_status,debatters(display_name)", "id", true),
+      queryAllRows("debatters", "id,display_name", "display_name", true)
     ]);
-    const validMatches = matches.filter((m) => m.match_status === "completed" && m.winner_id);
+    const validMatches = matches.filter((m) => m.match_status === "completed" &&
+      m.winner_id && [m.participant_a, m.participant_b].includes(m.winner_id));
     const validTitles = titles.filter((t) => ["verified", "corrected"].includes(t.confirmation_status));
+    const displayNames = new Map(debaters.map((person) => [person.id, person.display_name]));
     const stats = [];
+
     if (validMatches.length) {
-      const tally = {};
-      validMatches.forEach((m) => { tally[m.winner_id] = (tally[m.winner_id] || 0) + 1; });
-      const top = Object.entries(tally).sort((a, b) => b[1] - a[1])[0];
-      const { data: debatter } = await supabase.from("debatters").select("display_name").eq("id", top[0]).maybeSingle();
-      stats.push({ label: "Most wins", value: top[1], detail: (debatter?.display_name || "Debatter") + " · pertandingan selesai yang dipublikasikan." });
+      const winsByDebatter = {};
+      validMatches.forEach((match) => {
+        winsByDebatter[match.winner_id] = (winsByDebatter[match.winner_id] || 0) + 1;
+      });
+      const top = Object.entries(winsByDebatter)
+        .filter(([id]) => displayNames.has(id))
+        .sort((a, b) => b[1] - a[1] || displayNames.get(a[0]).localeCompare(displayNames.get(b[0])))[0];
+      if (top) stats.push({
+        label: "Most wins",
+        value: top[1],
+        detail: displayNames.get(top[0]) + " · kemenangan pada pertandingan selesai yang dipublikasikan."
+      });
+
+      const matchesByDebatter = new Map();
+      validMatches.forEach((match) => {
+        for (const participant of [match.participant_a, match.participant_b]) {
+          if (!matchesByDebatter.has(participant)) matchesByDebatter.set(participant, []);
+          matchesByDebatter.get(participant).push(match);
+        }
+      });
+      const streakResults = [];
+      for (const [debatterId, debatterMatches] of matchesByDebatter) {
+        // An undated match makes the sequence incomplete, so do not present a streak for that Debatter.
+        if (debatterMatches.length < 2 || debatterMatches.some((match) => !match.match_date) || !displayNames.has(debatterId)) continue;
+        const ordered = [...debatterMatches].sort((a, b) =>
+          new Date(a.match_date).getTime() - new Date(b.match_date).getTime() || a.id.localeCompare(b.id));
+        let run = 0;
+        let best = 0;
+        for (const match of ordered) {
+          if (match.winner_id === debatterId) {
+            run += 1;
+            best = Math.max(best, run);
+          } else {
+            run = 0;
+          }
+        }
+        if (best >= 2) streakResults.push({ id: debatterId, streak: best });
+      }
+      streakResults.sort((a, b) => b.streak - a.streak || displayNames.get(a.id).localeCompare(displayNames.get(b.id)));
+      if (streakResults.length) {
+        const best = streakResults[0];
+        stats.push({
+          label: "Longest win streak",
+          value: best.streak,
+          detail: displayNames.get(best.id) + " · urutan pertandingan bertanggal yang tersedia."
+        });
+      }
     }
+
     if (validTitles.length) {
       const tally = {};
-      validTitles.forEach((t) => { tally[t.debatter_id] = (tally[t.debatter_id] || 0) + 1; });
-      const top = Object.entries(tally).sort((a, b) => b[1] - a[1])[0];
-      const { data: debatter } = await supabase.from("debatters").select("display_name").eq("id", top[0]).maybeSingle();
-      stats.push({ label: "Most tournament titles", value: top[1], detail: (debatter?.display_name || "Debatter") + " · gelar terverifikasi." });
-    }
-    if (characterUses.length) {
-      const tally = {};
-      characterUses.forEach((entry) => {
-        const name = entry.characters?.character_name;
-        if (name) tally[name] = (tally[name] || 0) + 1;
+      validTitles.forEach((title) => {
+        if (displayNames.has(title.debatter_id)) tally[title.debatter_id] = (tally[title.debatter_id] || 0) + 1;
       });
-      const top = Object.entries(tally).sort((a, b) => b[1] - a[1])[0];
-      if (top) stats.push({ label: "Most used character", value: top[1], detail: top[0] + " · catatan penggunaan karakter yang tersedia." });
+      const top = Object.entries(tally)
+        .sort((a, b) => b[1] - a[1] || displayNames.get(a[0]).localeCompare(displayNames.get(b[0])))[0];
+      if (top) stats.push({
+        label: "Most tournament titles",
+        value: top[1],
+        detail: displayNames.get(top[0]) + " · gelar terverifikasi atau dikoreksi."
+      });
     }
+
+    const characterTally = {};
+    characterUses.forEach((entry) => {
+      const name = entry.characters?.character_name;
+      if (name) characterTally[name] = (characterTally[name] || 0) + 1;
+    });
+    const topCharacter = Object.entries(characterTally)
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0];
+    if (topCharacter) stats.push({
+      label: "Most used character",
+      value: topCharacter[1],
+      detail: topCharacter[0] + " · catatan penggunaan karakter pada pertandingan yang dapat dibaca publik."
+    });
+
+    const appearances = {};
+    const appearanceNames = {};
+    participations.forEach((entry) => {
+      if (entry.participation_status !== "confirmed" || !entry.debatters?.display_name) return;
+      appearances[entry.debatter_id] = (appearances[entry.debatter_id] || 0) + 1;
+      appearanceNames[entry.debatter_id] = entry.debatters.display_name;
+    });
+    const mostAppearances = Object.entries(appearances)
+      .sort((a, b) => b[1] - a[1] || appearanceNames[a[0]].localeCompare(appearanceNames[b[0]]))[0];
+    if (mostAppearances) stats.push({
+      label: "Tournament appearances",
+      value: mostAppearances[1],
+      detail: appearanceNames[mostAppearances[0]] + " · partisipasi yang telah dikonfirmasi pada turnamen publik."
+    });
+
     $("#app").innerHTML = '<section class="page-wrap">' +
       heading("03 / Competitive insights", "Fun fact<br>&amp; statistik.", "Statistik berdasarkan catatan kompetitif yang tersedia.", String(stats.length).padStart(2, "0") + " INSIGHTS") +
       (stats.length
         ? '<div class="stat-grid">' + stats.map((s) => '<article class="stat-card"><div class="stat-label">' +
           esc(s.label) + '</div><div class="stat-value">' + esc(s.value) + '</div><p>' +
-          esc(s.detail) + "</p></article>").join("") + '</div><div class="notice">Cakupan: data yang tersedia dan dipublikasikan. Ini bukan klaim rekor sepanjang masa jika arsip historis belum lengkap.</div>'
-        : emptyState("Data belum cukup untuk statistik", "Fun Fact akan muncul saat catatan pertandingan selesai, gelar terverifikasi, dan penggunaan karakter tersedia. Tidak ada angka perkiraan.")
+          esc(s.detail) + "</p></article>").join("") + '</div><div class="notice">Cakupan: data yang tersedia dan dipublikasikan. Ini bukan klaim rekor sepanjang masa jika arsip historis belum lengkap. Streak hanya dihitung saat seluruh pertandingan yang dipakai memiliki tanggal.</div>'
+        : emptyState("Data belum cukup untuk statistik", "Fun Fact akan muncul saat catatan pertandingan selesai, gelar terverifikasi, partisipasi, dan penggunaan karakter tersedia. Tidak ada angka perkiraan.")
       ) + "</section>";
   } catch (error) {
     $("#app").innerHTML = '<section class="page-wrap">' + errorView(error, "Statistik belum dapat dimuat") + "</section>";
