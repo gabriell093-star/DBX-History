@@ -115,18 +115,22 @@ async function tournamentsPage() {
   setLoading("Mengumpulkan arsip turnamen…");
   try {
     const tournaments = await queryRows("tournaments",
-      "id,tournament_name,organizer,start_date,end_date,status,tier_id,description,tiers(tier_name)",
+      "id,tournament_name,organizer,start_date,end_date,status,tier_id,poster_url,description,tiers(tier_name)",
       "start_date", false);
     const years = [...new Set(tournaments.map((t) => t.start_date ? t.start_date.slice(0, 4) : "").filter(Boolean))].sort().reverse();
     const draw = (items) => items.length
-      ? '<div class="archive-list">' + items.map((t, i) =>
-        '<a class="archive-row" href="#/tournaments/' + esc(t.id) + '">' +
-        '<span class="row-number">' + String(i + 1).padStart(2, "0") + '</span><div><div class="row-title">' +
-        esc(t.tournament_name) + '</div><div class="row-meta"><span>' +
-        esc(t.organizer || "Penyelenggara belum tersedia") + '</span><span>' +
-        esc(dateLabel(t.start_date)) + (t.end_date && t.end_date !== t.start_date ? " — " + esc(dateLabel(t.end_date)) : "") +
-        '</span><span>' + esc(t.tiers?.tier_name || "Tier belum tersedia") +
-        '</span></div></div>' + pill(t.status) + "</a>").join("") + "</div>"
+      ? '<div class="archive-list">' + items.map((t, i) => {
+        const poster = safeUrl(t.poster_url);
+        return '<a class="archive-row" href="#/tournaments/' + esc(t.id) + '">' +
+          '<span class="row-number">' + String(i + 1).padStart(2, "0") + '</span>' +
+          '<div class="archive-row-content' + (poster ? ' has-poster' : '') + '">' +
+          (poster ? '<img class="archive-poster-thumb" src="' + esc(poster) + '" alt="Poster ' + esc(t.tournament_name) + '" loading="lazy" decoding="async">' : '') +
+          '<div><div class="row-title">' + esc(t.tournament_name) + '</div><div class="row-meta"><span>' +
+          esc(t.organizer || "Penyelenggara belum tersedia") + '</span><span>' +
+          esc(dateLabel(t.start_date)) + (t.end_date && t.end_date !== t.start_date ? " — " + esc(dateLabel(t.end_date)) : "") +
+          '</span><span>' + esc(t.tiers?.tier_name || "Tier belum tersedia") +
+          '</span></div></div></div>' + pill(t.status) + "</a>";
+      }).join("") + "</div>"
       : emptyState("Arsip sedang disiapkan", "Belum ada turnamen yang dipublikasikan. Informasi akan muncul setelah diverifikasi administrator.");
     $("#app").innerHTML = '<section class="page-wrap">' +
       heading("01 / Tournament archive", "Informasi<br>turnamen.", "Jadwal, status, dan dokumentasi kompetisi dalam satu arsip.", String(tournaments.length).padStart(2, "0") + " RECORDS") +
@@ -190,7 +194,9 @@ async function tournamentDetail(id) {
       : "";
     $("#app").innerHTML = '<section class="page-wrap"><a class="detail-back" href="#/tournaments">← Kembali ke arsip turnamen</a>' +
       '<div class="detail-layout"><article class="detail-main"><div class="eyebrow">Tournament record / S1</div>' + pill(t.status) +
-      '<h1>' + esc(t.tournament_name) + '</h1><p>' + esc(t.description || "Deskripsi turnamen belum tersedia.") + "</p>" +
+      '<h1>' + esc(t.tournament_name) + '</h1>' +
+      (safeUrl(t.poster_url) ? '<img class="tournament-poster-detail" src="' + esc(safeUrl(t.poster_url)) + '" alt="Poster ' + esc(t.tournament_name) + '" loading="lazy" decoding="async">' : "") +
+      '<p>' + esc(t.description || "Deskripsi turnamen belum tersedia.") + "</p>" +
       (t.rules ? "<h2>Peraturan</h2><p>" + esc(t.rules) + "</p>" : "") +
       (t.results_summary ? "<h2>Hasil akhir</h2><p>" + esc(t.results_summary) + "</p>" : "") +
       register + '</article><aside class="detail-panel"><h3>Ringkasan turnamen</h3>' +
