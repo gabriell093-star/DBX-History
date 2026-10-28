@@ -14,17 +14,17 @@ Arsip kompetitif komunitas Death Battle Xtreme berdasarkan PRD dan UI/UX Require
 Jalankan python -m http.server 4173 dari root repo lalu buka http://localhost:4173.
 
 ## Login admin
-Akun Auth yang sudah ada pada project tersambung telah dipetakan menjadi username **gabriellumbantoruan093** dan dimasukkan ke public.admin_users. Gunakan username tersebut dengan kata sandi akun Supabase Auth yang dibuat sebelumnya.
+Akun Auth yang sudah ada pada project tersambung telah dipetakan menjadi username **gabriel** dengan role **founder**. Gunakan username `gabriel` dan kata sandi akun Supabase Auth yang dibuat sebelumnya.
 - Form login browser hanya meminta username dan kata sandi.
 - Edge Function: supabase/functions/username-login/index.ts, aktif pada project qtzailwtwasgbmvinmxz.
 - Tabel pemetaan username dilindungi RLS. Pemetaan hanya dapat dibaca backend Edge Function, bukan klien anon.
 - Jika kata sandi tidak diketahui, jangan bagikan kata sandi di chat. Reset kata sandi melalui Supabase Dashboard. Karena email backend mungkin Gmail, reset via email tetap memakai alamat Auth tersebut. Jika benar-benar ingin tanpa alamat Gmail yang tersimpan, buat akun internal baru dengan alias email non-Gmail dan auto-confirm, lalu perbarui mapping administrator.
 
-### Menyiapkan admin pertama pada project baru
-1. Buat user melalui Supabase Dashboard → Authentication → Users dengan alamat email yang diterima Supabase dan kata sandi kuat.
-2. Terapkan migrasi skema utama, indeks, dan 202610280001_admin_usernames.sql.
-3. Pastikan hanya ada satu user Auth yang dimaksudkan sebagai administrator sebelum menjalankan supabase/setup-first-admin.sql; skrip menolak otomatis jika jumlah user bukan satu.
-4. Username dihasilkan dari bagian sebelum @ pada email, dengan karakter yang tidak didukung dihapus. Hanya user yang terdaftar pada admin_users dapat memakai dashboard.
+### Otorisasi Founder
+1. Database memiliki kolom `admin_users.role` (`founder` atau `editor`) dan hanya mengizinkan satu role Founder.
+2. Kebijakan RLS pada tabel arsip, audit log, dan Storage mengharuskan role `founder`; login biasa tidak memberi akses edit.
+3. Hak INSERT/UPDATE/DELETE ke tabel membership `admin_users` dicabut dari `anon` dan `authenticated`. Tambah atau ubah keanggotaan hanya melalui jalur administratif yang dipercaya.
+4. Pada setup baru, terapkan migrasi utama, `202610280001_admin_usernames.sql`, dan `202610280002_founder_only_access.sql`; pastikan hanya ada satu user Auth yang dimaksudkan sebagai Founder sebelum menjalankan `supabase/setup-first-admin.sql`.
 5. Jangan pernah menyimpan service-role/secret key pada frontend atau repositori.
 
 ## Database & integritas
