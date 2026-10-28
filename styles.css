@@ -51,6 +51,7 @@ body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; 
   .admin-shell { grid-template-columns: 190px minmax(0, 1fr); }
 }
 @media (max-width: 650px) {
+  .menu-toggle { display: grid; }
   .site-header { height: 68px; gap: 8px; padding: 0 14px; }
   .brand { gap: 8px; }
   .brand-logo { width: 48px; height: 25px; }
