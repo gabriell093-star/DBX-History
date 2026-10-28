@@ -42,7 +42,8 @@ jobs:
           assert 'property="og:description"' in html, "Missing Open Graph description"
           assert 'property="og:image"' in html, "Missing Open Graph image"
           assert 'name="twitter:card" content="summary_large_image"' in html, "Missing Twitter large card"
-          assert "public/dbx-og-image.png" in html, "Social preview image path not present"
+          assert "public/dbx-og-image.png" in html, "Primary raster social preview image path not present"
+          assert "dbx-og-image.svg" in html, "Logo social preview vector fallback is missing"
           assert image[:8] == b"\x89PNG\r\n\x1a\n", "Social preview asset is not PNG"
           width, height = struct.unpack(">II", image[16:24])
           assert (width, height) == (1200, 630), f"Expected committed 1200x630 image, got {width}x{height}"
