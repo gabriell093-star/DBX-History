@@ -294,3 +294,29 @@ body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; 
   .archive-poster-thumb { width:58px; border-radius:7px; }
   .tournament-poster-detail { max-width:100%; max-height:none; border-radius:11px; margin:16px 0 20px; }
 }
+
+
+/* Champion profile: consistent image scale and metric hierarchy */
+.champion-profile-image {
+  display:block;
+  width:112px;
+  height:112px;
+  object-fit:cover;
+  object-position:center;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:var(--paper);
+  margin:18px 0 22px;
+  box-shadow:0 8px 20px #0432220c;
+}
+.detail-main > h2 { margin:28px 0 14px; font-size:clamp(22px, 3vw, 30px); line-height:1.2; letter-spacing:-.045em; }
+.detail-main .stat-grid { grid-template-columns:repeat(auto-fit, minmax(135px, 1fr)); gap:10px; margin:14px 0; }
+.detail-main .stat-card { padding:16px; border-radius:12px; background:#fffaf3; }
+.detail-main .stat-value { font-size:clamp(23px, 3.5vw, 31px); font-variant-numeric:tabular-nums; }
+.detail-main .stat-card p { line-height:1.6; margin-bottom:0; }
+@media (max-width:650px) {
+  .champion-profile-image { width:88px; height:88px; margin:14px 0 17px; border-radius:13px; }
+  .detail-main > h2 { margin-top:24px; font-size:22px; }
+  .detail-main .stat-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; }
+  .detail-main .stat-card { padding:12px; }
+}
