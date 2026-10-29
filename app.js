@@ -917,11 +917,6 @@ async function uploadAdminAsset(file, section) {
            String.fromCharCode(...bytes.slice(8, 12)) === "WEBP") { contentType = "image/webp"; extension = "webp"; }
   else throw new Error("File bukan gambar PNG, JPEG, WebP, atau GIF yang valid.");
 
-  if (file.type && file.type !== contentType &&
-      !(file.type === "image/jpg" && contentType === "image/jpeg")) {
-    throw new Error("Tipe gambar tidak cocok dengan isi file. Pilih ulang foto dalam format PNG, JPEG, WebP, atau GIF.");
-  }
-
   const rawName = String(file.name || "foto").normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
   const safeBase = rawName.replace(/\.[^.]*$/, "").toLowerCase()
     .replace(/[^a-z0-9_-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 64) || "foto";
