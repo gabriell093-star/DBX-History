@@ -14,19 +14,19 @@ Arsip kompetitif komunitas Death Battle Xtreme berdasarkan PRD dan UI/UX Require
 Jalankan python -m http.server 4173 dari root repo lalu buka http://localhost:4173.
 
 ## Login admin
-Login website menampilkan kolom username kosong dengan placeholder `Masukkan username`. Dua akun Founder awal yang sudah terdaftar adalah `ellias8890` dan `daffxy7778`. Akun owner tambahan `MARU7712` menggunakan internal Auth identity `maru7712@dbx-history.vercel.app` dan harus dibuat melalui Supabase Dashboard sebelum diberi role Founder.
+Login website menampilkan kolom username kosong dengan placeholder `Masukkan username`. Tiga username Founder yang saat ini terdaftar dan terkonfirmasi di database adalah `ellias8890`, `daffxy7778`, dan `maru7712`. Nama Founder yang ditampilkan di website adalah Gabriel, Daffxy & Maru.
 - Form login browser hanya meminta username dan kata sandi.
 - Edge Function: supabase/functions/username-login/index.ts, aktif pada project qtzailwtwasgbmvinmxz.
 - Tabel pemetaan username dilindungi RLS. Pemetaan hanya dapat dibaca backend Edge Function, bukan klien anon.
 - Akun Founder saat ini sudah dibuat dan terdaftar di `public.admin_users` serta `public.admin_usernames`. Login dengan salah satu username di atas dan kata sandi yang sudah Anda tetapkan. Jangan menuliskan kata sandi di chat atau repo.
-- Untuk menambahkan owner `MARU7712`, buat user Auth `maru7712@dbx-history.vercel.app` melalui Authentication → Users, set password sesuai kredensial yang dipilih dan aktifkan auto-confirm. Setelah akun terlihat sebagai confirmed di Auth, jalankan `supabase/setup-three-founders.sql` di SQL Editor. Skrip hanya mengaitkan tiga akun ke role `founder`; skrip tidak menyimpan password.
+- Untuk instalasi baru atau pemulihan setup tiga Founder, buat user Auth `ellias8890@dbx-history.vercel.app`, `daffxy7778@dbx-history.vercel.app`, dan `maru7712@dbx-history.vercel.app` melalui Authentication → Users dan konfirmasi semua user sebelum menjalankan `supabase/setup-three-founders.sql` di SQL Editor. Skrip hanya mengaitkan akun ke role `founder`; skrip tidak menyimpan password.
 - Untuk instalasi baru, buat ketiga internal Auth identity di atas dan konfirmasi semuanya sebelum menjalankan `supabase/setup-three-founders.sql`.
 
 ### Otorisasi Founder
 1. Database memiliki kolom `admin_users.role` (`founder` atau `editor`). Role `founder` adalah tingkat akses penuh yang dipakai aplikasi untuk para owner yang disetujui.
 2. Kebijakan RLS pada tabel arsip, audit log, dan Storage mengharuskan role `founder`; login biasa tidak memberi akses edit.
 3. Hak INSERT/UPDATE/DELETE ke tabel membership `admin_users` dicabut dari `anon` dan `authenticated`. Tambah atau ubah keanggotaan hanya melalui jalur administratif yang dipercaya.
-4. Pada setup baru, terapkan migrasi utama, `202610280001_admin_usernames.sql`, `202610280002_founder_only_access.sql`, `202610280003_allow_two_founders.sql`, dan `202610280004_unique_debatter_display_name.sql`, kemudian gunakan `supabase/setup-three-founders.sql` setelah ketiga user Auth dibuat.
+4. Pada setup baru, terapkan migrasi utama, `202610280001_admin_usernames.sql`, `202610280002_founder_only_access.sql`, `202610280003_allow_two_founders.sql`, dan `202610280004_unique_debatter_display_name.sql`, kemudian gunakan `supabase/setup-three-founders.sql` setelah ketiga user Auth dibuat. Pada proyek aktif, ketiga username sudah terpetakan ke role `founder`.
 5. Jangan pernah menyimpan service-role/secret key pada frontend atau repositori.
 
 ## Audit PRD/UI/UX
