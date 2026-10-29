@@ -894,19 +894,24 @@ async function renderAdminForm(section, record) {
         } else if (f.type === "asset") payload[f.key] = control.value.trim() || null;
         else payload[f.key] = control.value.trim() || null;
       }
-      const fieldLimits = {
-        tournament_name: 160, organizer: 120, description: 5000, rules: 5000,
-        results_summary: 5000, participant_requirements: 2500, format: 120, prize: 180,
-        poster_url: 2048, registration_url: 2048, display_name: 80, photo_url: 2048,
-        character_name: 120, image_url: 2048, tier_name: 80, tier_description: 2000,
-        reference_source: 2048, round_label: 120, notes: 2000, verification_source: 2048
+      const fieldLimitsBySection = {
+        tournaments: {
+          tournament_name: 160, organizer: 120, description: 5000, rules: 5000,
+          results_summary: 5000, participant_requirements: 2500, format: 120,
+          prize: 180, poster_url: 2048, registration_url: 2048
+        },
+        debaters: { display_name: 80, photo_url: 2048, description: 2000 },
+        characters: { character_name: 120, image_url: 2048, description: 2000 },
+        tiers: { tier_name: 80, tier_description: 2000, reference_source: 2048 },
+        matches: { round_label: 120, notes: 2000 },
+        titles: { verification_source: 2048, notes: 2000 }
       };
       for (const f of config.fields) {
         const value = payload[f.key];
         if (f.required && (value == null || String(value).trim() === "")) {
           throw new Error(f.label + " wajib diisi.");
         }
-        const maxLength = fieldLimits[f.key];
+        const maxLength = fieldLimitsBySection[section]?.[f.key];
         if (typeof value === "string" && maxLength && value.length > maxLength) {
           throw new Error(f.label + " maksimal " + maxLength + " karakter.");
         }
