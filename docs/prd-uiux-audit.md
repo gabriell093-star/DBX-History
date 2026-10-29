@@ -1,5 +1,5 @@
 # DBX History S1 — Audit PRD & UI/UX
-Tanggal pemeriksaan: 28 Oktober 2026
+Tanggal pemeriksaan: 29 Oktober 2026 (pemeriksaan lanjutan)
 Basis: PRD DBX History S1 v1.0 dan UI/UX Requirements v1.0 (27 Oktober 2026), source branch `main`, konfigurasi Supabase terkait, dan status deployment dari GitHub/Vercel.
 
 ## Ringkasan
@@ -14,7 +14,7 @@ Status:
 
 | Area | Status | Temuan |
 |---|---|---|
-| Beranda | PARTIAL | Identitas DBX History, tujuan arsip, tiga pintu fitur utama, dan kredit Gabriel/Daffxy tersedia. Sorotan terbaru bersifat statis/tidak diambil dari data dinamis. |
+| Beranda | PARTIAL | Identitas DBX History, tujuan arsip, tiga pintu fitur utama, dan kredit Founder Gabriel, Daffxy & Maru tersedia. Sorotan terbaru bersifat statis/tidak diambil dari data dinamis. |
 | Daftar turnamen | PASS (struktur), PARTIAL (konten) | Mengambil turnamen publik, pencarian nama/penyelenggara, filter status/tahun, label status, tautan ke detail. Query kini memakai pagination, bukan berhenti pada 200/300 baris. Saat pemeriksaan: 0 turnamen tersimpan. |
 | Poster turnamen | PASS (komponen) | Poster yang disetel pada `poster_url` sekarang dirender sebagai thumbnail pada daftar dan gambar utama pada detail. Poster registrasi unggulan di bagian atas daftar merupakan blok informasi khusus berdasarkan poster yang diberikan, bukan otomatis sebuah baris turnamen pada database. |
 | Detail turnamen | PASS (struktur), PARTIAL (data) | Menampilkan status, deskripsi, tanggal, penyelenggara, tier, format, hadiah, aturan, ketentuan peserta, poster, hasil dan CTA pendaftaran sesuai data. CTA hanya muncul jika `registration_open` aktif dan URL valid. Tidak ada record saat audit. |
@@ -28,7 +28,7 @@ Status:
 | Area | Status | Temuan |
 |---|---|---|
 | Pengelolaan konten | PASS (implementasi kode) | Form CRUD tersedia untuk turnamen, Debatter, gelar, pertandingan, karakter, tier, partisipasi, dan penggunaan karakter; unggah file; validasi URL pendaftaran; validasi pemenang dan peserta; konfirmasi penghapusan. Daftar admin memakai pagination tanpa batas 300 baris yang sebelumnya ada. |
-| Otorisasi Founder | PASS (kebijakan yang diperiksa) | Role `founder` diperiksa pada UI dan RLS untuk penulisan tabel konten, audit log, serta operasi Storage. Keanggotaan admin tidak bisa dikelola lewat hak INSERT/UPDATE/DELETE biasa di Data API. Dua pemetaan yang tercatat saat pemeriksaan adalah `ellias8890` dan `daffxy7778`, keduanya role `founder`. |
+| Otorisasi Founder | PASS (kebijakan yang diperiksa) | Role `founder` diperiksa pada UI dan RLS untuk penulisan tabel konten, audit log, serta operasi Storage. Keanggotaan admin tidak bisa dikelola lewat hak INSERT/UPDATE/DELETE biasa di Data API. Tiga pemetaan Founder yang terkonfirmasi di database saat pemeriksaan lanjutan adalah `ellias8890`, `daffxy7778`, dan `maru7712`, seluruhnya role `founder`. |
 | Gelar dan verifikasi | PASS (struktur) | Ada status draft, perlu verifikasi, verified, corrected; gelar publik dibatasi pada verified/corrected dan relasi Debatter/turnamen yang dipublikasikan. Constraint unik mencegah gelar ganda untuk pasangan Debatter-turnamen yang sama. |
 | Audit log | PASS (struktur) | Trigger mencatat insert/update/delete pada tabel kompetitif. Perubahan dapat dilihat di area audit oleh Founder. Pengujian operasional menyeluruh belum dilakukan. |
 | Integritas identitas Debatter | PARTIAL | Nama baru dicek pada formulir dengan normalisasi huruf besar-kecil/spasi, dan unique index database mencegah duplikat nama normalisasi. Alur merge profil duplikat lama (termasuk relasi gelar/pertandingan) belum tersedia. Data Debatter berjumlah 0 pada pemeriksaan ini. |

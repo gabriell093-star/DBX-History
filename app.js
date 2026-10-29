@@ -45,6 +45,23 @@ const emptyState = (title, description, extra = "") =>
   esc(title) + "</h2><p>" + esc(description) + "</p>" + extra + "</div>";
 const showNotice = (message, isError = false) =>
   '<div class="notice ' + (isError ? "error" : "success") + '" role="status">' + esc(message) + "</div>";
+function adminErrorMessage(error, operation = "save") {
+  const code = String(error?.code || "");
+  const raw = String(error?.message || "");
+  if (code === "23503") return operation === "delete"
+    ? "Catatan masih dipakai data lain. Hapus atau ubah hubungan terkait terlebih dahulu."
+    : "Relasi data tidak valid. Pastikan pilihan turnamen, Debatter, karakter, dan pertandingan tersedia.";
+  if (code === "23505") return "Data serupa sudah ada. Periksa nama atau hubungan data agar tidak ganda.";
+  if (code === "23514" || code === "22P02" || code === "22003")
+    return "Ada nilai yang tidak sesuai ketentuan. Periksa format, panjang teks, tanggal, dan angka yang diisi.";
+  if (code === "42501" || /permission denied|row-level security/i.test(raw))
+    return "Akun ini tidak memiliki izin untuk tindakan tersebut. Pastikan sesi Founder masih aktif.";
+  if (/failed to fetch|networkerror|load failed|network request failed/i.test(raw))
+    return "Koneksi ke layanan data terputus. Periksa internet, lalu coba kembali.";
+  return raw || (operation === "delete"
+    ? "Catatan tidak dapat dihapus. Muat ulang dan coba kembali."
+    : "Data tidak dapat disimpan. Periksa isian dan coba kembali.");
+}
 
 function toast(message) {
   $(".toast")?.remove();
@@ -144,7 +161,7 @@ function homePage() {
     '<div><div class="principle"><span class="num">01</span><div><strong>Data terverifikasi</strong><span>Gelar dan hasil dipublikasikan setelah dikonfirmasi.</span></div></div>' +
     '<div class="principle"><span class="num">02</span><div><strong>Riwayat tetap terjaga</strong><span>Turnamen selesai tetap menjadi bagian sejarah.</span></div></div>' +
     '<div class="principle"><span class="num">03</span><div><strong>Statistik yang jujur</strong><span>Tidak ada angka rekaan untuk mengisi ruang kosong.</span></div></div></div></div></section>' +
-    '<div class="founder-strip"><p>ARSIP YANG DIBANGUN BERSAMA</p><div class="founder-names">Gabriel <span>×</span> Daffxy</div></div>';
+    '<div class="founder-strip"><p>ARSIP YANG DIBANGUN BERSAMA</p><div class="founder-names">Gabriel, Daffxy <span>&amp;</span> Maru</div></div>';
 }
 
 async function tournamentsPage() {
@@ -726,15 +743,47 @@ function displayFieldValue(type, value) {
   if (value == null) return "";
   if (type === "datetime-local") {
     const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? "" : date.toISOString().slice(0, 16);
+    if (Number.isNaN(date.getTime())) return "";
+    const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return localDate.toISOString().slice(0, 16);
   }
   return String(value);
 }
+function relationOptionLabel(config, item) {
+  if (config.table === "matches" && config.display === "id") {
+    const parts = [
+      item.tournaments?.tournament_name,
+      item.round_label || "Pertandingan",
+      item.match_date ? dateLabel(item.match_date) : ""
+    ].filter(Boolean);
+    return parts.join(" · ") || ("Pertandingan " + String(item.id).slice(0, 8));
+  }
+  const value = item[config.display];
+  if (value == null || value === "") return "Catatan " + String(item.id).slice(0, 8);
+  if (config.display === "id") return String(value).slice(0, 8) + "…";
+  return String(value);
+}
 async function relationOptions(config) {
-  const { data, error } = await supabase.from(config.table).select("id," + config.display)
-    .order(config.display, { ascending: true }).limit(500);
-  if (error) throw error;
-  return data || [];
+  if (!supabase) throw new Error("Koneksi Supabase belum tersedia.");
+  const rows = [];
+  const pageSize = 1000;
+  let start = 0;
+  const isMatchLabel = config.table === "matches" && config.display === "id";
+  const columns = isMatchLabel
+    ? "id,round_label,match_date,tournaments(tournament_name)"
+    : [...new Set(["id", config.display])].join(",");
+  while (true) {
+    let request = supabase.from(config.table).select(columns);
+    if (isMatchLabel) request = request.order("match_date", { ascending: false, nullsFirst: false });
+    else request = request.order(config.display, { ascending: true, nullsFirst: false });
+    const { data, error } = await request.range(start, start + pageSize - 1);
+    if (error) throw error;
+    const page = data || [];
+    rows.push(...page);
+    if (page.length < pageSize) break;
+    start += pageSize;
+  }
+  return rows;
 }
 async function renderAdminForm(section, record) {
   const config = adminSections[section];
@@ -747,7 +796,7 @@ async function renderAdminForm(section, record) {
       if (f.type === "relation") options[f.key] = await relationOptions(f);
     }
   } catch (error) {
-    editor.innerHTML = showNotice("Daftar pilihan tidak dapat dimuat: " + error.message, true);
+    editor.innerHTML = showNotice("Daftar pilihan tidak dapat dimuat: " + adminErrorMessage(error, "load"), true);
     return;
   }
   const controls = config.fields.map((f) => {
@@ -764,7 +813,7 @@ async function renderAdminForm(section, record) {
     if (f.type === "select" || f.type === "relation") {
       const choices = f.type === "select"
         ? f.choices.map((choice) => ({ id: choice[0], label: choice[1] }))
-        : options[f.key].map((item) => ({ id: item.id, label: item[f.display] || item.id }));
+        : options[f.key].map((item) => ({ id: item.id, label: relationOptionLabel(f, item) }));
       const blankLabel = f.nullLabel || (f.type === "relation" ? "Pilih catatan…" : "Pilih…");
       return '<div class="form-field"><label for="' + id + '">' + esc(f.label) + '</label><select id="' +
         id + '" name="' + f.key + '"' + (f.required ? " required" : "") + '><option value="">' + esc(blankLabel) +
@@ -834,9 +883,81 @@ async function renderAdminForm(section, record) {
         if (f.type === "checkbox") payload[f.key] = control.checked;
         else if (f.type === "number") payload[f.key] = control.value === "" ? null : Number(control.value);
         else if (f.type === "relation") payload[f.key] = control.value || null;
-        else if (f.type === "datetime-local") payload[f.key] = control.value ? new Date(control.value).toISOString() : null;
-        else if (f.type === "asset") payload[f.key] = control.value.trim() || null;
+        else if (f.type === "datetime-local") {
+          const raw = control.value.trim();
+          if (!raw) payload[f.key] = null;
+          else {
+            const parsedDate = new Date(raw);
+            if (Number.isNaN(parsedDate.getTime())) throw new Error(f.label + " bukan tanggal dan waktu yang valid.");
+            payload[f.key] = parsedDate.toISOString();
+          }
+        } else if (f.type === "asset") payload[f.key] = control.value.trim() || null;
         else payload[f.key] = control.value.trim() || null;
+      }
+      const fieldLimitsBySection = {
+        tournaments: {
+          tournament_name: 160, organizer: 120, description: 5000, rules: 5000,
+          results_summary: 5000, participant_requirements: 2500, format: 120,
+          prize: 180, poster_url: 2048, registration_url: 2048
+        },
+        debaters: { display_name: 80, photo_url: 2048, description: 2000 },
+        characters: { character_name: 120, image_url: 2048, description: 2000 },
+        tiers: { tier_name: 80, tier_description: 2000, reference_source: 2048 },
+        matches: { round_label: 120, notes: 2000 },
+        titles: { verification_source: 2048, notes: 2000 }
+      };
+      for (const f of config.fields) {
+        const value = payload[f.key];
+        if (f.required && (value == null || String(value).trim() === "")) {
+          throw new Error(f.label + " wajib diisi.");
+        }
+        const maxLength = fieldLimitsBySection[section]?.[f.key];
+        if (typeof value === "string" && maxLength && value.length > maxLength) {
+          throw new Error(f.label + " maksimal " + maxLength + " karakter.");
+        }
+        if (f.type === "url" && value != null && value !== "") {
+          const normalizedUrl = safeUrl(value);
+          if (!normalizedUrl || normalizedUrl.length > 2048 || /\s/.test(value)) {
+            throw new Error(f.label + " harus berupa URL HTTPS yang valid (maksimal 2.048 karakter).");
+          }
+          payload[f.key] = normalizedUrl;
+        }
+      }
+      if (section === "tournaments" && payload.start_date && payload.end_date &&
+          payload.end_date < payload.start_date) {
+        throw new Error("Tanggal selesai tidak boleh mendahului tanggal mulai.");
+      }
+      if (section === "matches") {
+        for (const scoreKey of ["score_a", "score_b"]) {
+          const score = payload[scoreKey];
+          if (score != null && (!Number.isFinite(score) || score < 0)) {
+            throw new Error("Skor pertandingan harus berupa angka nol atau lebih.");
+          }
+        }
+      }
+      if (section === "participations" && payload.placement != null &&
+          (!Number.isInteger(payload.placement) || payload.placement < 1)) {
+        throw new Error("Posisi akhir harus berupa bilangan bulat minimal 1.");
+      }
+      if (section === "titles" || section === "participations" || section === "match_characters") {
+        const uniqueFields = section === "titles"
+          ? ["debatter_id", "tournament_id"]
+          : section === "participations"
+            ? ["debatter_id", "tournament_id"]
+            : ["match_id", "debatter_id", "character_id"];
+        let duplicateQuery = supabase.from(config.table).select("id");
+        for (const key of uniqueFields) duplicateQuery = duplicateQuery.eq(key, payload[key]);
+        if (editingRecordId) duplicateQuery = duplicateQuery.neq("id", editingRecordId);
+        const { data: duplicates, error: duplicateError } = await duplicateQuery.limit(1);
+        if (duplicateError) throw duplicateError;
+        if (duplicates?.length) {
+          const duplicateMessage = section === "titles"
+            ? "Debatter ini sudah memiliki catatan gelar untuk turnamen tersebut. Edit catatan yang ada agar riwayat tidak ganda."
+            : section === "participations"
+              ? "Partisipasi Debatter untuk turnamen ini sudah tercatat."
+              : "Karakter ini sudah tercatat untuk Debatter pada pertandingan tersebut.";
+          throw new Error(duplicateMessage);
+        }
       }
       if (section === "debaters") {
         const normalizeName = (name) => String(name || "").trim().replace(/\s+/g, " ").toLocaleLowerCase("id-ID");
@@ -865,19 +986,25 @@ async function renderAdminForm(section, record) {
           payload[f.key] = uploaded.publicUrl;
           uploadedAssets.push(uploaded);
         } else {
-          payload[f.key] = safeUrl(payload[f.key]) || null;
+          const rawUrl = String(payload[f.key] || "").trim();
+          const normalizedUrl = safeUrl(rawUrl);
+          if (rawUrl && (!normalizedUrl || normalizedUrl.length > 2048 || /\s/.test(rawUrl))) {
+            throw new Error(f.label + " harus berupa URL HTTPS yang valid (maksimal 2.048 karakter).");
+          }
+          payload[f.key] = normalizedUrl || null;
         }
       }
       if (section === "titles" && ["verified", "corrected"].includes(payload.confirmation_status) && !payload.confirmed_at) {
         payload.confirmed_at = new Date().toISOString();
       }
       const result = editingRecordId
-        ? await supabase.from(config.table).update(payload).eq("id", editingRecordId)
-        : await supabase.from(config.table).insert(payload);
+        ? await supabase.from(config.table).update(payload).eq("id", editingRecordId).select("id").maybeSingle()
+        : await supabase.from(config.table).insert(payload).select("id").single();
       if (result.error?.code === "23505" && String(result.error?.message || "").includes("debaters_display_name_normalized_unique_idx")) {
         throw new Error("Nama panggung tersebut sudah digunakan. Buka profil yang sudah ada agar riwayat gelar tidak terpecah.");
       }
       if (result.error) throw result.error;
+      if (!result.data?.id) throw new Error("Tidak ada perubahan tersimpan. Periksa izin akun Founder dan muat ulang sebelum mengulang.");
       recordSaved = true;
       releasePreviews();
       toast("Catatan berhasil disimpan.");
@@ -892,7 +1019,7 @@ async function renderAdminForm(section, record) {
           console.warn("An uploaded asset could not be cleaned up after the record save failed.");
         }
       }
-      $("#admin-form-message").innerHTML = showNotice(error.message || "Data tidak berhasil disimpan.", true);
+      $("#admin-form-message").innerHTML = showNotice(adminErrorMessage(error), true);
       submit.disabled = false;
       submit.textContent = editingRecordId ? "Simpan perubahan" : "Simpan catatan";
     }
@@ -989,7 +1116,7 @@ async function loadAdminSection(section) {
     const relationNames = {};
     for (const f of config.fields.filter((item) => item.type === "relation")) {
       const options = await relationOptions(f);
-      relationNames[f.key] = Object.fromEntries(options.map((o) => [o.id, o[f.display] || o.id]));
+      relationNames[f.key] = Object.fromEntries(options.map((o) => [o.id, relationOptionLabel(f, o)]));
     }
     const recordsRoot = $("#admin-records");
     recordsRoot.className = "";
@@ -1015,18 +1142,21 @@ async function loadAdminSection(section) {
       const recordName = record?.tournament_name || record?.display_name || record?.character_name || record?.tier_name || record?.id;
       if (!confirm('Hapus catatan "' + recordName + '"? Hubungan data yang terkait dapat ikut terhapus. Tindakan ini tidak dapat dibatalkan.')) return;
       button.disabled = true;
-      const { error } = await supabase.from(config.table).delete().eq("id", button.dataset.delete);
-      if (error) {
-        $("#admin-notice").innerHTML = showNotice(error.message, true);
-        button.disabled = false;
-      } else {
+      try {
+        const { data: deleted, error } = await supabase.from(config.table)
+          .delete().eq("id", button.dataset.delete).select("id").maybeSingle();
+        if (error) throw error;
+        if (!deleted?.id) throw new Error("Tidak ada catatan yang dihapus. Catatan mungkin sudah berubah atau akses sesi berakhir.");
         toast("Catatan dihapus.");
         await loadAdminSection(section);
+      } catch (error) {
+        $("#admin-notice").innerHTML = showNotice(adminErrorMessage(error, "delete"), true);
+        button.disabled = false;
       }
     }));
   } catch (error) {
     $("#admin-records").className = "";
-    $("#admin-records").innerHTML = showNotice(error.message || "Gagal memuat catatan.", true);
+    $("#admin-records").innerHTML = showNotice("Gagal memuat catatan: " + adminErrorMessage(error, "load"), true);
   }
 }
 async function renderRoute() {
