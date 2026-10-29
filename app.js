@@ -45,6 +45,23 @@ const emptyState = (title, description, extra = "") =>
   esc(title) + "</h2><p>" + esc(description) + "</p>" + extra + "</div>";
 const showNotice = (message, isError = false) =>
   '<div class="notice ' + (isError ? "error" : "success") + '" role="status">' + esc(message) + "</div>";
+function adminErrorMessage(error, operation = "save") {
+  const code = String(error?.code || "");
+  const raw = String(error?.message || "");
+  if (code === "23503") return operation === "delete"
+    ? "Catatan masih dipakai data lain. Hapus atau ubah hubungan terkait terlebih dahulu."
+    : "Relasi data tidak valid. Pastikan pilihan turnamen, Debatter, karakter, dan pertandingan tersedia.";
+  if (code === "23505") return "Data serupa sudah ada. Periksa nama atau hubungan data agar tidak ganda.";
+  if (code === "23514" || code === "22P02" || code === "22003")
+    return "Ada nilai yang tidak sesuai ketentuan. Periksa format, panjang teks, tanggal, dan angka yang diisi.";
+  if (code === "42501" || /permission denied|row-level security/i.test(raw))
+    return "Akun ini tidak memiliki izin untuk tindakan tersebut. Pastikan sesi Founder masih aktif.";
+  if (/failed to fetch|networkerror|load failed|network request failed/i.test(raw))
+    return "Koneksi ke layanan data terputus. Periksa internet, lalu coba kembali.";
+  return raw || (operation === "delete"
+    ? "Catatan tidak dapat dihapus. Muat ulang dan coba kembali."
+    : "Data tidak dapat disimpan. Periksa isian dan coba kembali.");
+}
 
 function toast(message) {
   $(".toast")?.remove();
@@ -779,7 +796,7 @@ async function renderAdminForm(section, record) {
       if (f.type === "relation") options[f.key] = await relationOptions(f);
     }
   } catch (error) {
-    editor.innerHTML = showNotice("Daftar pilihan tidak dapat dimuat: " + error.message, true);
+    editor.innerHTML = showNotice("Daftar pilihan tidak dapat dimuat: " + adminErrorMessage(error, "load"), true);
     return;
   }
   const controls = config.fields.map((f) => {
@@ -997,7 +1014,7 @@ async function renderAdminForm(section, record) {
           console.warn("An uploaded asset could not be cleaned up after the record save failed.");
         }
       }
-      $("#admin-form-message").innerHTML = showNotice(error.message || "Data tidak berhasil disimpan.", true);
+      $("#admin-form-message").innerHTML = showNotice(adminErrorMessage(error), true);
       submit.disabled = false;
       submit.textContent = editingRecordId ? "Simpan perubahan" : "Simpan catatan";
     }
@@ -1120,18 +1137,21 @@ async function loadAdminSection(section) {
       const recordName = record?.tournament_name || record?.display_name || record?.character_name || record?.tier_name || record?.id;
       if (!confirm('Hapus catatan "' + recordName + '"? Hubungan data yang terkait dapat ikut terhapus. Tindakan ini tidak dapat dibatalkan.')) return;
       button.disabled = true;
-      const { error } = await supabase.from(config.table).delete().eq("id", button.dataset.delete);
-      if (error) {
-        $("#admin-notice").innerHTML = showNotice(error.message, true);
-        button.disabled = false;
-      } else {
+      try {
+        const { data: deleted, error } = await supabase.from(config.table)
+          .delete().eq("id", button.dataset.delete).select("id").maybeSingle();
+        if (error) throw error;
+        if (!deleted?.id) throw new Error("Tidak ada catatan yang dihapus. Catatan mungkin sudah berubah atau akses sesi berakhir.");
         toast("Catatan dihapus.");
         await loadAdminSection(section);
+      } catch (error) {
+        $("#admin-notice").innerHTML = showNotice(adminErrorMessage(error, "delete"), true);
+        button.disabled = false;
       }
     }));
   } catch (error) {
     $("#admin-records").className = "";
-    $("#admin-records").innerHTML = showNotice(error.message || "Gagal memuat catatan.", true);
+    $("#admin-records").innerHTML = showNotice("Gagal memuat catatan: " + adminErrorMessage(error, "load"), true);
   }
 }
 async function renderRoute() {
