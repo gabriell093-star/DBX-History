@@ -320,3 +320,37 @@ body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; 
   .detail-main .stat-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; }
   .detail-main .stat-card { padding:12px; }
 }
+
+
+/* Admin asset preview and champion portraits */
+.admin-image-preview {
+  display: block;
+  width: 112px;
+  height: 112px;
+  margin-top: 10px;
+  object-fit: contain;
+  object-position: center;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+}
+.admin-image-preview[hidden] { display: none; }
+.champion-avatar {
+  width: 56px;
+  height: 56px;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 50%;
+}
+.champion-avatar-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--g);
+  font-weight: 800;
+  font-size: 20px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  box-sizing: border-box;
+}
