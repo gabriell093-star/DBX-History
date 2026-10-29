@@ -247,13 +247,14 @@ async function championsPage() {
   setLoading("Membuka arsip juara…");
   try {
     const titles = await queryAllRows("titles",
-      "id,debatter_id,tournament_id,confirmation_status,confirmed_at,debatters(id,display_name),tournaments(id,tournament_name,start_date,tiers(tier_name))",
+      "id,debatter_id,tournament_id,confirmation_status,confirmed_at,debatters(id,display_name,photo_url),tournaments(id,tournament_name,start_date,tiers(tier_name))",
       "confirmed_at", false);
     const verified = titles.filter((t) => ["verified", "corrected"].includes(t.confirmation_status) && t.debatters);
     const byDebatter = new Map();
     verified.forEach((title) => {
       if (!byDebatter.has(title.debatter_id)) byDebatter.set(title.debatter_id, {
-        id: title.debatter_id, name: title.debatters.display_name, titles: []
+        id: title.debatter_id, name: title.debatters.display_name,
+        photoUrl: safeUrl(title.debatters.photo_url), titles: []
       });
       byDebatter.get(title.debatter_id).titles.push(title);
     });
@@ -261,10 +262,14 @@ async function championsPage() {
     const draw = (items) => items.length
       ? '<div class="archive-list">' + items.map((person, i) =>
         '<a class="archive-row" href="#/champions/' + esc(person.id) + '">' +
-        '<span class="row-number">' + String(i + 1).padStart(2, "0") + '</span><div><div class="row-title">' +
-        esc(person.name) + '</div><div class="row-meta"><span>' + person.titles.length +
+        '<span class="row-number">' + String(i + 1).padStart(2, "0") + '</span>' +
+        '<div class="archive-row-content has-poster champion-row-content">' +
+        (person.photoUrl
+          ? '<img class="archive-poster-thumb champion-avatar" src="' + esc(person.photoUrl) + '" alt="Foto ' + esc(person.name) + '" loading="lazy" decoding="async">'
+          : '<span class="champion-avatar champion-avatar-placeholder" aria-hidden="true">' + esc(person.name.trim().slice(0, 1).toUpperCase()) + '</span>') +
+        '<div><div class="row-title">' + esc(person.name) + '</div><div class="row-meta"><span>' + person.titles.length +
         ' gelar terverifikasi</span><span>' + esc(person.titles[0]?.tournaments?.tournament_name || "Turnamen terdokumentasi") +
-        "</span></div></div><span class=\"status completed\">Terverifikasi</span></a>").join("") + "</div>"
+        "</span></div></div></div><span class=\"status completed\">Terverifikasi</span></a>").join("") + "</div>"
       : emptyState("Belum ada juara terverifikasi", "Arsip juara pertama akan tampil setelah hasil turnamen dikonfirmasi.");
     $("#app").innerHTML = '<section class="page-wrap">' +
       heading("02 / Champions archive", "Juara<br>turnamen.", "Arsip Debatter yang gelarnya telah diverifikasi.", String(people.length).padStart(2, "0") + " DEBATTERS") +
@@ -768,10 +773,16 @@ async function renderAdminForm(section, record) {
           esc(choice.label) + "</option>").join("") + "</select></div>";
     }
     if (f.type === "asset") {
+      const existingImage = safeUrl(value || "");
       return '<div class="form-field full"><label for="' + id + '">' + esc(f.label) + '</label>' +
-        '<input id="' + id + '" name="' + f.key + '" type="url" value="' + esc(value || "") +
-        '" placeholder="URL gambar (opsional)"><input type="file" data-upload="' + f.key +
-        '" accept="image/png,image/jpeg,image/webp,image/gif"><small>Unggah gambar maksimal 5 MB, atau isi URL gambar.</small></div>';
+        '<input id="' + id + '" name="' + f.key + '" type="url" value="' + esc(existingImage) +
+        '" placeholder="https://… (URL gambar opsional)">' +
+        '<label for="' + id + '-upload">Pilih gambar dari perangkat</label>' +
+        '<input id="' + id + '-upload" type="file" data-upload="' + f.key +
+        '" accept="image/png,image/jpeg,image/webp,image/gif">' +
+        '<img class="admin-image-preview" id="' + id + '-preview" src="' + esc(existingImage) +
+        '" alt="Pratinjau ' + esc(f.label) + '"' + (existingImage ? "" : " hidden") + '>' +
+        '<small>PNG, JPEG, WebP, atau GIF; maksimal 5 MB. File diperiksa berdasarkan isi, bukan hanya ekstensi.</small></div>';
     }
     const inputType = f.type === "datetime-local" ? "datetime-local" : f.type;
     return '<div class="form-field' + (["description", "rules", "results_summary", "participant_requirements", "notes", "tier_description"].includes(f.key) ? " full" : "") +
@@ -783,7 +794,31 @@ async function renderAdminForm(section, record) {
     '<div class="form-grid">' + controls + '</div><div id="admin-form-message" aria-live="polite"></div>' +
     '<div class="form-actions"><button type="button" class="btn secondary" id="cancel-record">Batal</button>' +
     '<button type="submit" class="btn">' + (record ? "Simpan perubahan" : "Simpan catatan") + "</button></div></form>";
-  $("#cancel-record").addEventListener("click", () => { editor.innerHTML = ""; editingRecordId = null; });
+  const previewObjectUrls = [];
+  for (const f of config.fields.filter((item) => item.type === "asset")) {
+    const input = $('input[data-upload="' + f.key + '"]', editor);
+    const preview = $("#field-" + f.key + "-preview", editor);
+    input?.addEventListener("change", () => {
+      const file = input.files?.[0];
+      if (!preview) return;
+      if (file) {
+        const previewUrl = URL.createObjectURL(file);
+        previewObjectUrls.push(previewUrl);
+        preview.src = previewUrl;
+        preview.hidden = false;
+      } else {
+        const existingImage = safeUrl(record?.[f.key] || "");
+        if (existingImage) { preview.src = existingImage; preview.hidden = false; }
+        else preview.hidden = true;
+      }
+    });
+  }
+  const releasePreviews = () => previewObjectUrls.forEach((url) => URL.revokeObjectURL(url));
+  $("#cancel-record").addEventListener("click", () => {
+    releasePreviews();
+    editor.innerHTML = "";
+    editingRecordId = null;
+  });
   $("#admin-record-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
@@ -791,6 +826,8 @@ async function renderAdminForm(section, record) {
     submit.disabled = true;
     submit.textContent = "Menyimpan…";
     const payload = {};
+    const uploadedAssets = [];
+    let recordSaved = false;
     try {
       for (const f of config.fields) {
         const control = form.elements.namedItem(f.key);
@@ -822,8 +859,14 @@ async function renderAdminForm(section, record) {
         if (payload.match_status === "completed" && !payload.winner_id) throw new Error("Pertandingan selesai harus memiliki pemenang yang dikonfirmasi.");
       }
       for (const f of config.fields.filter((item) => item.type === "asset")) {
-        const file = $('input[data-upload="' + f.key + '"]', form).files[0];
-        if (file) payload[f.key] = await uploadAdminAsset(file, section);
+        const file = $('input[data-upload="' + f.key + '"]', form)?.files?.[0];
+        if (file) {
+          const uploaded = await uploadAdminAsset(file, section);
+          payload[f.key] = uploaded.publicUrl;
+          uploadedAssets.push(uploaded);
+        } else {
+          payload[f.key] = safeUrl(payload[f.key]) || null;
+        }
       }
       if (section === "titles" && ["verified", "corrected"].includes(payload.confirmation_status) && !payload.confirmed_at) {
         payload.confirmed_at = new Date().toISOString();
@@ -835,9 +878,20 @@ async function renderAdminForm(section, record) {
         throw new Error("Nama panggung tersebut sudah digunakan. Buka profil yang sudah ada agar riwayat gelar tidak terpecah.");
       }
       if (result.error) throw result.error;
+      recordSaved = true;
+      releasePreviews();
       toast("Catatan berhasil disimpan.");
       await loadAdminSection(section);
     } catch (error) {
+      if (!recordSaved && uploadedAssets.length) {
+        const cleanupResults = await Promise.allSettled(uploadedAssets.map((asset) =>
+          supabase.storage.from(asset.bucket).remove([asset.path])
+        ));
+        if (cleanupResults.some((result) => result.status === "rejected" ||
+          (result.status === "fulfilled" && result.value?.error))) {
+          console.warn("An uploaded asset could not be cleaned up after the record save failed.");
+        }
+      }
       $("#admin-form-message").innerHTML = showNotice(error.message || "Data tidak berhasil disimpan.", true);
       submit.disabled = false;
       submit.textContent = editingRecordId ? "Simpan perubahan" : "Simpan catatan";
@@ -845,16 +899,45 @@ async function renderAdminForm(section, record) {
   });
 }
 async function uploadAdminAsset(file, section) {
-  const allowed = ["image/png", "image/jpeg", "image/webp", "image/gif"];
-  if (!allowed.includes(file.type)) throw new Error("Format gambar harus PNG, JPEG, WebP, atau GIF.");
-  if (file.size > 5 * 1024 * 1024) throw new Error("Ukuran gambar maksimal 5 MB.");
-  const safeName = file.name.toLowerCase().replace(/[^a-z0-9._-]/g, "-");
-  const path = section + "/" + Date.now() + "-" + safeName;
-  const { error } = await supabase.storage.from("dbx-assets").upload(path, file, {
-    cacheControl: "3600", upsert: false, contentType: file.type
+  const maxBytes = 5 * 1024 * 1024;
+  if (!file || typeof file.size !== "number" || file.size <= 0) {
+    throw new Error("Pilih file gambar yang tidak kosong.");
+  }
+  if (file.size > maxBytes) throw new Error("Ukuran gambar maksimal 5 MB.");
+
+  const bytes = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+  const startsWith = (signature) => signature.every((byte, index) => bytes[index] === byte);
+  let contentType = "";
+  let extension = "";
+  if (startsWith([137, 80, 78, 71, 13, 10, 26, 10])) { contentType = "image/png"; extension = "png"; }
+  else if (startsWith([255, 216, 255])) { contentType = "image/jpeg"; extension = "jpg"; }
+  else if (String.fromCharCode(...bytes.slice(0, 6)) === "GIF87a" ||
+           String.fromCharCode(...bytes.slice(0, 6)) === "GIF89a") { contentType = "image/gif"; extension = "gif"; }
+  else if (String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" &&
+           String.fromCharCode(...bytes.slice(8, 12)) === "WEBP") { contentType = "image/webp"; extension = "webp"; }
+  else throw new Error("File bukan gambar PNG, JPEG, WebP, atau GIF yang valid.");
+
+  const rawName = String(file.name || "foto").normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
+  const safeBase = rawName.replace(/\.[^.]*$/, "").toLowerCase()
+    .replace(/[^a-z0-9_-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 64) || "foto";
+  const randomId = globalThis.crypto?.randomUUID
+    ? globalThis.crypto.randomUUID()
+    : Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 12);
+  const bucket = "dbx-assets";
+  const path = section + "/" + randomId + "-" + safeBase + "." + extension;
+  const { error } = await supabase.storage.from(bucket).upload(path, file, {
+    cacheControl: "31536000", upsert: false, contentType
   });
-  if (error) throw error;
-  return supabase.storage.from("dbx-assets").getPublicUrl(path).data.publicUrl;
+  if (error) {
+    const code = error.statusCode ? " (" + String(error.statusCode) + ")" : "";
+    throw new Error("Foto gagal diunggah" + code + ". Pastikan sesi admin masih aktif, hak Founder tersedia, dan koneksi internet stabil.");
+  }
+  const publicUrl = safeUrl(supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl);
+  if (!publicUrl) {
+    await supabase.storage.from(bucket).remove([path]);
+    throw new Error("Foto tersimpan, tetapi URL publiknya tidak valid. Coba unggah kembali.");
+  }
+  return { bucket, path, publicUrl };
 }
 function adminCell(config, row, key, relationNames) {
   const value = row[key];
