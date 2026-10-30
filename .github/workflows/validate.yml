@@ -78,6 +78,28 @@ jobs:
           assert "adminErrorMessage" in js and "Catatan masih dipakai data lain." in js, "Admin CRUD errors should be translated into actionable messages"
           assert "date.getTimezoneOffset()" in js, "datetime-local fields must round-trip local time correctly"
 
+          # Admin workflow and audit log regression checks
+          assert 'requestedAdminSection === "audit"' in js, "Admin audit route must be accepted explicitly"
+          assert "async function loadAuditLogs()" in js and 'queryAllRows(\n        "audit_logs"' in js, "Audit log must use paginated loading"
+          assert 'id="audit-refresh"' in js and "Muat ulang" in js, "Audit log needs a working refresh action"
+          assert "adminVisibilityAction" in js and 'data-visibility="' in js, "Admin must support publish/archive and tier active-state actions"
+          assert "async function assertSafeAdminDelete" in js and "adminDeleteDependencies" in js, "Admin deletes must protect related historical data"
+          assert "Gelar hanya dapat diverifikasi" in js, "Verified titles must require confirmed first-place participation"
+          assert "2.118.0" in js, "Browser Supabase SDK must be pinned"
+          assert "2.118.0" in function_js, "Edge Function Supabase SDK must be pinned"
+          assert ".table-scroll" in Path("styles.css").read_text(encoding="utf-8"), "Admin tables need mobile horizontal scrolling"
+          assert Path("supabase/migrations/20261030022049_preserve_competitive_history_on_delete.sql").exists(), "Historical FK restriction migration missing"
+          assert Path("supabase/migrations/20261030032000_enforce_valid_champion_and_match_records.sql").exists(), "Champion and match integrity migration missing"
+          integrity_sql = Path("supabase/migrations/20261030032000_enforce_valid_champion_and_match_records.sql").read_text(encoding="utf-8")
+          assert "matches_winner_is_participant_chk" in integrity_sql and "matches_completed_requires_winner_chk" in integrity_sql, "Match integrity constraints missing"
+          assert "enforce_verified_title_has_confirmed_first_place" in integrity_sql and "protect_verified_champion_participation" in integrity_sql, "Verified champion safeguards missing"
+          assert "docs/security-audit-20261030.md" in Path("README.md").read_text(encoding="utf-8"), "Security audit report link missing"
+          assert Path("docs/security-audit-20261030.md").exists(), "Security audit report missing"
+          assert "sb_publishable_" in js and "SUPABASE_SERVICE_ROLE_KEY" not in js and "SUPABASE_SECRET_KEYS" not in js, "Frontend must use only a publishable key"
+          public_docs = Path("README.md").read_text(encoding="utf-8") + Path("supabase/setup-three-founders.sql").read_text(encoding="utf-8")
+          assert not re.search(r"ellias8890|daffxy7778|maru7712|@dbx-history\\.vercel\\.app", public_docs, re.I), "Do not commit actual Founder login identifiers"
+          assert "REPLACE_WITH_GABRIEL_AUTH_EMAIL" in Path("supabase/setup-three-founders.sql").read_text(encoding="utf-8"), "Founder SQL setup must use private placeholders"
+
           assert "setup-three-founders.sql" in Path("README.md").read_text(encoding="utf-8"), "Three-Founder setup instructions missing"
           assert 'name="robots" content="index, follow, max-image-preview:large"' in html, "Missing crawler indexing directive"
           assert any(item.get("source") == "/" and any(h.get("key") == "Cache-Control" and "no-store" in h.get("value", "") for h in item.get("headers", [])) for item in config.get("headers", [])), "Root HTML must not keep stale cached metadata"
