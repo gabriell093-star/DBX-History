@@ -354,3 +354,27 @@ body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; 
   border: 1px solid var(--line);
   box-sizing: border-box;
 }
+
+
+/* Admin data tables remain readable on narrow screens */
+.table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.table-scroll .admin-table {
+  min-width: 700px;
+  margin: 0;
+}
+.table-scroll .admin-table th,
+.table-scroll .admin-table td {
+  white-space: nowrap;
+}
+.table-scroll .admin-table td:last-child {
+  white-space: normal;
+  min-width: 210px;
+}
