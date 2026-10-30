@@ -88,5 +88,13 @@ jobs:
           assert config.get("headers"), "Expected static-site security headers in vercel.json"
           assert config.get("outputDirectory") == ".", "Vercel must serve the repository root containing index.html"
           assert any(item.get("destination") == "/index.html" for item in config.get("rewrites", [])), "Missing SPA fallback rewrite"
-          print(f"OK: metadata and social preview PNG ({width}x{height}); username login, tournament poster, WhatsApp links and static Vercel config parsed.")
+          assert 'currentRoute[1] === "audit" || adminSections[currentRoute[1]]' in js, "Audit Log route must be preserved by admin workspace routing"
+          assert 'if (section === "audit")' in js and 'queryRows("audit_logs"' in js, "Audit Log must load the audit trail"
+          assert 'audit_logs' in js and "admin_users" in js, "Audit Log viewer and Founder membership check must exist"
+          assert "consume_admin_login_attempt" in function_js and "p_username_hash" in function_js, "Admin login must enforce username rate limiting"
+          assert "allowedOrigins" in function_js and "Access-Control-Allow-Origin" in function_js and "Origin not allowed." in function_js, "Admin login must restrict browser origins"
+          assert "SUPABASE_SECRET_KEYS" in function_js and "SUPABASE_SERVICE_ROLE_KEY" in function_js, "Privileged credentials must be read server-side only"
+          assert "admin_users" in js and "founder" in js, "Founder membership must be checked before admin workspace access"
+          assert any(h.get("key") == "Content-Security-Policy" for item in config.get("headers", []) for h in item.get("headers", [])), "Content Security Policy header missing"
+          print(f"OK: metadata and social preview PNG ({width}x{height}); admin Audit Log routing, login protections, and static Vercel config parsed.")
           PY
