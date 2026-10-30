@@ -94,7 +94,7 @@ jobs:
           assert "consume_admin_login_attempt" in function_js and "p_username_hash" in function_js, "Admin login must enforce username rate limiting"
           assert "allowedOrigins" in function_js and "Access-Control-Allow-Origin" in function_js and "Origin not allowed." in function_js, "Admin login must restrict browser origins"
           assert "SUPABASE_SECRET_KEYS" in function_js and "SUPABASE_SERVICE_ROLE_KEY" in function_js, "Privileged credentials must be read server-side only"
-          assert "founder_manage_tournaments" in Path("supabase/migrations/202610280001_initial_schema.sql").read_text(encoding="utf-8") or "admin_users" in js, "Founder authorization must be enforced by database policies"
+          assert "admin_users" in js and "founder" in js, "Founder membership must be checked before admin workspace access"
           assert any(h.get("key") == "Content-Security-Policy" for item in config.get("headers", []) for h in item.get("headers", [])), "Content Security Policy header missing"
           print(f"OK: metadata and social preview PNG ({width}x{height}); admin Audit Log routing, login protections, and static Vercel config parsed.")
           PY
