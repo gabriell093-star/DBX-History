@@ -700,6 +700,7 @@ async function adminPage() {
           ? loginError.message
           : "Username atau kata sandi salah, atau layanan login sementara tidak tersedia.";
         $("#login-message").innerHTML = showNotice(message, true);
+        $("#admin-password").value = "";
         button.disabled = false;
         button.textContent = "Masuk ke dashboard ↗";
       }
@@ -717,7 +718,9 @@ async function adminPage() {
     return;
   }
   currentAdmin = true;
-  activeAdminSection = adminSections[currentRoute[1]] ? currentRoute[1] : "tournaments";
+  const requestedAdminSection = currentRoute[1];
+  activeAdminSection = requestedAdminSection === "audit" || adminSections[requestedAdminSection]
+    ? requestedAdminSection : "tournaments";
   $("#app").innerHTML = '<section class="page-wrap">' +
     heading("Private workspace / DBX", "Admin<br>workspace.", "Kelola konten, periksa verifikasi, dan publikasikan informasi yang valid.") +
     '<div class="admin-shell"><aside class="admin-side"><div class="eyebrow">Control room</div><h2>Archive<br>management.</h2>' +
@@ -1078,6 +1081,80 @@ function adminCell(config, row, key, relationNames) {
   if (key.endsWith("_at") || key.endsWith("_date")) return dateLabel(value);
   return String(value).length > 60 ? String(value).slice(0, 57) + "…" : String(value);
 }
+const adminVisibilityAction = (section, record) => {
+  if (section === "tiers") {
+    const nextValue = !record.is_active;
+    return { field: "is_active", nextValue, label: nextValue ? "Aktifkan" : "Nonaktifkan" };
+  }
+  if (["tournaments", "debaters", "characters"].includes(section)) {
+    const nextValue = !record.is_published;
+    return { field: "is_published", nextValue, label: nextValue ? "Publikasikan" : "Arsipkan" };
+  }
+  return null;
+};
+
+const adminDeleteDependencies = {
+  tournaments: [
+    { table: "titles", column: "tournament_id", label: "gelar juara" },
+    { table: "participations", column: "tournament_id", label: "partisipasi" },
+    { table: "matches", column: "tournament_id", label: "pertandingan" }
+  ],
+  debaters: [
+    { table: "titles", column: "debatter_id", label: "gelar juara" },
+    { table: "participations", column: "debatter_id", label: "partisipasi" },
+    { table: "match_characters", column: "debatter_id", label: "catatan penggunaan karakter" },
+    { table: "matches", column: "participant_a", label: "pertandingan sebagai Debatter A" },
+    { table: "matches", column: "participant_b", label: "pertandingan sebagai Debatter B" },
+    { table: "matches", column: "winner_id", label: "hasil sebagai pemenang" }
+  ],
+  matches: [
+    { table: "match_characters", column: "match_id", label: "catatan penggunaan karakter" }
+  ],
+  characters: [
+    { table: "match_characters", column: "character_id", label: "catatan penggunaan karakter" }
+  ],
+  tiers: [
+    { table: "tournaments", column: "tier_id", label: "referensi turnamen" }
+  ]
+};
+
+async function assertSafeAdminDelete(section, record) {
+  if (!record) throw new Error("Catatan tidak ditemukan. Muat ulang daftar sebelum mencoba lagi.");
+  if (["tournaments", "debatters", "characters"].includes(section) && record.is_published) {
+    throw new Error("Catatan yang masih dipublikasikan tidak boleh dihapus langsung. Gunakan tombol Arsipkan terlebih dahulu agar data tetap tersimpan.");
+  }
+  if (section === "tiers" && record.is_active) {
+    throw new Error("Tier yang masih aktif tidak boleh dihapus langsung. Nonaktifkan tier terlebih dahulu.");
+  }
+  if (section === "tournaments" && record.status === "completed") {
+    throw new Error("Turnamen yang sudah selesai merupakan arsip historis. Sembunyikan dari publik bila perlu, tetapi jangan hapus catatannya.");
+  }
+  if (section === "matches" && record.match_status === "completed") {
+    throw new Error("Pertandingan selesai merupakan sumber statistik dan riwayat. Koreksi status atau hasilnya, jangan hapus catatannya.");
+  }
+  if (section === "titles" && ["verified", "corrected"].includes(record.confirmation_status)) {
+    throw new Error("Gelar terverifikasi harus dipertahankan. Catat koreksi melalui form gelar dan status verifikasinya agar jejak perubahan tetap tersedia.");
+  }
+  if (section === "participations" && record.participation_status === "confirmed") {
+    throw new Error("Partisipasi yang telah dikonfirmasi sebaiknya dipertahankan. Ubah status menjadi mengundurkan diri atau didiskualifikasi jika catatannya perlu dikoreksi.");
+  }
+
+  const checks = adminDeleteDependencies[section] || [];
+  const dependencies = await Promise.all(checks.map(async (check) => {
+    const { count, error } = await supabase.from(check.table)
+      .select("id", { count: "exact", head: true })
+      .eq(check.column, record.id);
+    if (error) throw error;
+    return { label: check.label, count: count || 0 };
+  }));
+  const related = dependencies.filter((item) => item.count > 0);
+  if (related.length) {
+    throw new Error("Catatan masih menjadi referensi data lain (" +
+      related.map((item) => item.count + " " + item.label).join(", ") +
+      "). Penghapusan diblokir agar riwayat dan relasi arsip tidak ikut hilang.");
+  }
+}
+
 async function loadAdminSection(section) {
   const config = adminSections[section];
   const root = $("#admin-content");
@@ -1085,20 +1162,66 @@ async function loadAdminSection(section) {
   activeAdminSection = section;
   editingRecordId = null;
   if (section === "audit") {
-    root.innerHTML = '<h2>Audit log</h2><p>Riwayat perubahan data kompetitif untuk keterlacakan.</p><div id="audit-results" class="loading-state">Memuat audit log…</div>';
+    root.innerHTML = '<h2>Audit log</h2><p>Riwayat otomatis untuk penambahan, perubahan, dan penghapusan turnamen, Debatter, gelar, pertandingan, karakter, tier, partisipasi, serta penggunaan karakter. Catatan menyimpan ID admin, waktu, data sebelum, dan data sesudah.</p>' +
+      '<div class="form-actions"><button class="btn secondary" id="audit-refresh" type="button">Muat ulang ↻</button></div>' +
+      '<div id="audit-results" class="loading-state">Memuat audit log…</div>';
+    const loadAuditLogs = async () => {
+      $("#audit-results").className = "loading-state";
+      $("#audit-results").textContent = "Memuat audit log…";
+      const logs = await queryAllRows(
+        "audit_logs",
+        "id,admin_id,entity_type,entity_id,action,old_data,new_data,created_at",
+        "created_at",
+        false
+      );
+      $("#audit-results").className = "";
+      if (!logs.length) {
+        $("#audit-results").innerHTML = emptyState(
+          "Belum ada perubahan tercatat",
+          "Audit log sudah aktif. Catatan akan muncul otomatis setelah Founder menambah, mengubah, atau menghapus data arsip. Database produksi saat ini belum memiliki aktivitas konten yang tercatat."
+        );
+        return;
+      }
+      const actionLabels = { insert: "Tambah", update: "Ubah", delete: "Hapus" };
+      const entityLabels = {
+        tournaments: "Turnamen", debaters: "Debatter", titles: "Gelar juara",
+        matches: "Pertandingan", characters: "Karakter", tiers: "Tier resmi",
+        participations: "Partisipasi", match_characters: "Penggunaan karakter"
+      };
+      $("#audit-results").innerHTML = '<div class="notice">Menampilkan ' + logs.length +
+        ' perubahan tersimpan, dari yang terbaru. Gunakan tombol Muat ulang untuk mengambil catatan terkini.</div>' +
+        '<div class="table-scroll"><table class="admin-table"><thead><tr><th>Waktu</th><th>Entitas</th><th>Aksi</th><th>ID data</th><th>Admin ID</th><th>Detail</th></tr></thead><tbody>' +
+        logs.map((log) => {
+          const timestamp = new Date(log.created_at);
+          const timeLabel = Number.isNaN(timestamp.getTime()) ? "Waktu tidak valid" : timestamp.toLocaleString("id-ID");
+          return '<tr><td>' + esc(timeLabel) + '</td><td>' +
+            esc(entityLabels[log.entity_type] || log.entity_type) + '</td><td>' +
+            esc(actionLabels[log.action] || log.action) + '</td><td>' +
+            esc(log.entity_id || "—") + '</td><td><code title="' + esc(log.admin_id || "") + '">' +
+            esc(log.admin_id ? "Founder · " + log.admin_id.slice(0, 8) + "…" : "Tidak teridentifikasi") +
+            '</code></td><td><details><summary>Lihat sebelum / sesudah</summary>' +
+            '<pre style="white-space:pre-wrap;max-width:340px;overflow-wrap:anywhere">' +
+            esc(JSON.stringify({ old: log.old_data, new: log.new_data }, null, 2)) +
+            "</pre></details></td></tr>";
+        }).join("") + "</tbody></table></div>";
+    };
+    $("#audit-refresh").addEventListener("click", async (event) => {
+      const button = event.currentTarget;
+      button.disabled = true;
+      try {
+        await loadAuditLogs();
+      } catch (error) {
+        $("#audit-results").className = "";
+        $("#audit-results").innerHTML = showNotice("Audit log gagal dimuat: " + adminErrorMessage(error, "load"), true);
+      } finally {
+        button.disabled = false;
+      }
+    });
     try {
-      const logs = await queryRows("audit_logs", "id,admin_id,entity_type,entity_id,action,old_data,new_data,created_at", "created_at", false, 100);
-      $("#audit-results").innerHTML = logs.length
-        ? '<div class="notice">Menampilkan ' + logs.length + ' perubahan terbaru.</div><table class="admin-table"><thead><tr><th>Waktu</th><th>Entitas</th><th>Aksi</th><th>ID data</th><th>Admin</th><th>Perubahan</th></tr></thead><tbody>' +
-          logs.map((log) => '<tr><td>' + esc(new Date(log.created_at).toLocaleString("id-ID")) + '</td><td>' +
-            esc(log.entity_type) + '</td><td>' + esc(log.action) + '</td><td>' +
-            esc(log.entity_id || "—") + '</td><td>' + esc(log.admin_id || "—") + '</td><td>' +
-            '<details><summary>Lihat</summary><pre style="white-space:pre-wrap;max-width:340px;overflow-wrap:anywhere">' +
-            esc(JSON.stringify({ old: log.old_data, new: log.new_data }, null, 2)) + "</pre></details></td></tr>").join("") +
-          "</tbody></table>"
-        : emptyState("Belum ada perubahan", "Perubahan penting akan tercatat setelah administrator mengelola arsip.");
+      await loadAuditLogs();
     } catch (error) {
-      $("#audit-results").innerHTML = showNotice(error.message, true);
+      $("#audit-results").className = "";
+      $("#audit-results").innerHTML = showNotice("Audit log gagal dimuat: " + adminErrorMessage(error, "load"), true);
     }
     return;
   }
@@ -1124,14 +1247,40 @@ async function loadAdminSection(section) {
       recordsRoot.innerHTML = emptyState("Belum ada catatan", "Tambahkan catatan setelah memeriksa sumber informasinya.");
       return;
     }
-    recordsRoot.innerHTML = '<table class="admin-table"><thead><tr>' +
+    recordsRoot.innerHTML = '<div class="table-scroll"><table class="admin-table"><thead><tr>' +
       config.columns.map((column) => "<th>" + esc(column.replaceAll("_", " ")) + "</th>").join("") +
       "<th>Aksi</th></tr></thead><tbody>" +
-      records.map((record) => '<tr>' + config.columns.map((key) =>
-        "<td>" + esc(adminCell(config, record, key, relationNames)) + "</td>").join("") +
-        '<td><button type="button" class="table-action" data-edit="' + esc(record.id) + '">Edit</button>' +
-        '<button type="button" class="table-action" data-delete="' + esc(record.id) + '">Hapus</button></td></tr>').join("") +
-      "</tbody></table>";
+      records.map((record) => {
+        const visibility = adminVisibilityAction(section, record);
+        const visibilityButton = visibility
+          ? '<button type="button" class="table-action" data-visibility="' + esc(record.id) +
+            '" data-visibility-field="' + esc(visibility.field) + '" data-visibility-value="' +
+            String(visibility.nextValue) + '">' + esc(visibility.label) + '</button>'
+          : "";
+        return '<tr>' + config.columns.map((key) =>
+          "<td>" + esc(adminCell(config, record, key, relationNames)) + "</td>").join("") +
+          "<td>" + visibilityButton +
+          '<button type="button" class="table-action" data-edit="' + esc(record.id) + '">Edit</button>' +
+          '<button type="button" class="table-action" data-delete="' + esc(record.id) + '">Hapus</button></td></tr>';
+      }).join("") + "</tbody></table></div>";
+    $$("[data-visibility]", recordsRoot).forEach((button) => button.addEventListener("click", async () => {
+      const nextValue = button.dataset.visibilityValue === "true";
+      const field = button.dataset.visibilityField;
+      button.disabled = true;
+      try {
+        const { data: updated, error } = await supabase.from(config.table)
+          .update({ [field]: nextValue }).eq("id", button.dataset.visibility).select("id").maybeSingle();
+        if (error) throw error;
+        if (!updated?.id) throw new Error("Perubahan status tidak tersimpan. Periksa izin Founder lalu muat ulang.");
+        toast(field === "is_active"
+          ? (nextValue ? "Tier diaktifkan." : "Tier dinonaktifkan.")
+          : (nextValue ? "Catatan dipublikasikan." : "Catatan diarsipkan dan disembunyikan dari publik."));
+        await loadAdminSection(section);
+      } catch (error) {
+        $("#admin-notice").innerHTML = showNotice(adminErrorMessage(error), true);
+        button.disabled = false;
+      }
+    }));
     $$("[data-edit]", recordsRoot).forEach((button) => button.addEventListener("click", () => {
       const record = records.find((item) => item.id === button.dataset.edit);
       renderAdminForm(section, record);
@@ -1139,8 +1288,15 @@ async function loadAdminSection(section) {
     }));
     $$("[data-delete]", recordsRoot).forEach((button) => button.addEventListener("click", async () => {
       const record = records.find((item) => item.id === button.dataset.delete);
-      const recordName = record?.tournament_name || record?.display_name || record?.character_name || record?.tier_name || record?.id;
-      if (!confirm('Hapus catatan "' + recordName + '"? Hubungan data yang terkait dapat ikut terhapus. Tindakan ini tidak dapat dibatalkan.')) return;
+      const recordName = record?.tournament_name || record?.display_name || record?.character_name ||
+        record?.tier_name || record?.round_label || record?.id;
+      try {
+        await assertSafeAdminDelete(section, record);
+      } catch (error) {
+        $("#admin-notice").innerHTML = showNotice(adminErrorMessage(error, "delete"), true);
+        return;
+      }
+      if (!confirm('Hapus catatan "' + recordName + '"? Tindakan ini tidak dapat dibatalkan.')) return;
       button.disabled = true;
       try {
         const { data: deleted, error } = await supabase.from(config.table)
@@ -1192,7 +1348,7 @@ window.addEventListener("keydown", (event) => {
   }
 });
 try {
-  const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.57.0");
+  const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.118.0");
   supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
   const { data } = await supabase.auth.getSession();
   currentSession = data.session;
