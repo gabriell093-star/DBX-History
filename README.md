@@ -19,7 +19,7 @@ Login website menampilkan kolom username kosong dengan placeholder `Masukkan use
 - Edge Function: supabase/functions/username-login/index.ts, aktif pada project qtzailwtwasgbmvinmxz.
 - Tabel pemetaan username dilindungi RLS. Pemetaan hanya dapat dibaca backend Edge Function, bukan klien anon.
 - Akun Founder saat ini sudah dibuat dan terdaftar di `public.admin_users` serta `public.admin_usernames`. Login dengan salah satu username di atas dan kata sandi yang sudah Anda tetapkan. Jangan menuliskan kata sandi di chat atau repo.
-- Untuk instalasi baru atau pemulihan setup tiga Founder, buat user Auth `ellias8890@dbx-history.vercel.app`, `daffxy7778@dbx-history.vercel.app`, dan `maru7712@dbx-history.vercel.app` melalui Authentication → Users dan konfirmasi semua user sebelum menjalankan `supabase/setup-three-founders.sql` di SQL Editor. Skrip hanya mengaitkan akun ke role `founder`; skrip tidak menyimpan password.
+- Untuk instalasi baru atau pemulihan, buat tiga user Auth menggunakan email privat yang disimpan terpisah, konfirmasi semua user, lalu isi placeholder pada salinan pribadi `supabase/setup-three-founders.sql`. Jangan memasukkan alamat email atau username aktual ke repository.
 - Untuk instalasi baru, buat ketiga internal Auth identity di atas dan konfirmasi semuanya sebelum menjalankan `supabase/setup-three-founders.sql`.
 
 ### Otorisasi Founder
@@ -44,7 +44,7 @@ Lihat [laporan audit keamanan](docs/security-audit-20261030.md). Temuan utama:
 Semua tabel publik memakai RLS; gelar hanya dipublikasikan untuk status verified atau corrected dan jika Debatter serta turnamennya dipublikasikan. Database mencegah nama Debatter duplikat setelah normalisasi huruf besar-kecil dan whitespace. Statistik memakai data tersedia, streak memerlukan tanggal, dan cakupan arsip parsial tidak diklaim sebagai rekor sepanjang masa. Data historis tidak diisi dengan angka rekaan.
 
 ## Share preview
-Tag Open Graph dan Twitter Card tersedia di `index.html`. Gambar pratinjau utama disajikan dari `https://dbx-history.vercel.app/dbx-og-image.png?v=20261028-3`, sehingga crawler dapat mengambil aset dari root domain produksi. Untuk menguji ulang WhatsApp setelah deployment, bagikan URL baru `https://dbx-history.vercel.app/?share=20261028-3`. Preview lama dapat tetap tersimpan di cache WhatsApp meskipun metadata website telah berubah.
+Tag Open Graph dan Twitter Card tersedia di `index.html`. Gambar pratinjau utama disajikan dari `https://dbx-history.vercel.app/dbx-og-image.png?v=20261029-1`, sehingga crawler dapat mengambil aset dari root domain produksi. Untuk menguji ulang WhatsApp setelah deployment, bagikan URL baru `https://dbx-history.vercel.app/?share=20261029-1`. Preview lama dapat tetap tersimpan di cache WhatsApp meskipun metadata website telah berubah.
 
 ## Deploy Vercel
 - Repository: gabriell093-star/DBX-History
