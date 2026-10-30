@@ -14,7 +14,7 @@ Arsip kompetitif komunitas Death Battle Xtreme berdasarkan PRD dan UI/UX Require
 Jalankan python -m http.server 4173 dari root repo lalu buka http://localhost:4173.
 
 ## Login admin
-Login website menampilkan kolom username kosong dengan placeholder `Masukkan username`. Tiga username Founder yang saat ini terdaftar dan terkonfirmasi di database adalah `ellias8890`, `daffxy7778`, dan `maru7712`. Nama Founder yang ditampilkan di website adalah Gabriel, Daffxy & Maru.
+Login website menampilkan kolom username kosong dengan placeholder `Masukkan username`. Tiga akun Founder telah terdaftar dan terkonfirmasi di database. Nama yang ditampilkan di website adalah Gabriel, Daffxy & Maru. Username login tidak dicantumkan di dokumentasi publik.
 - Form login browser hanya meminta username dan kata sandi.
 - Edge Function: supabase/functions/username-login/index.ts, aktif pada project qtzailwtwasgbmvinmxz.
 - Tabel pemetaan username dilindungi RLS. Pemetaan hanya dapat dibaca backend Edge Function, bukan klien anon.
@@ -31,6 +31,14 @@ Login website menampilkan kolom username kosong dengan placeholder `Masukkan use
 
 ## Audit PRD/UI/UX
 Lihat [`docs/prd-uiux-audit.md`](docs/prd-uiux-audit.md) untuk status fitur per PRD, temuan keamanan, kekurangan yang belum terverifikasi, dan prioritas berikutnya.
+
+
+## Audit keamanan dan workspace admin (30 Oktober 2026)
+Lihat [laporan audit keamanan](docs/security-audit-20261030.md). Temuan utama:
+- Audit Log menggunakan trigger database untuk merekam perubahan pada seluruh entitas kompetitif. Halaman admin memuat log secara paginasi; halaman kosong berarti belum ada perubahan yang tercatat, bukan tombol tanpa fungsi.
+- Tombol arsip/aktifkan membantu menyembunyikan konten tanpa menghapus arsip. Penghapusan catatan yang masih dipakai relasi, sudah selesai, atau sudah terverifikasi diblokir dari workspace.
+- Login menggunakan publishable key di browser. Secret/service key tetap di Edge Function. Rate limit khusus username dan IP dijalankan di sisi server.
+- Saat audit, 3 akun Founder belum memiliki faktor MFA terverifikasi dan Supabase Leaked Password Protection masih nonaktif. Ikuti laporan audit untuk langkah konfigurasi manual sebelum mengandalkan perlindungan tambahan tersebut.
 
 ## Database & integritas
 Semua tabel publik memakai RLS; gelar hanya dipublikasikan untuk status verified atau corrected dan jika Debatter serta turnamennya dipublikasikan. Database mencegah nama Debatter duplikat setelah normalisasi huruf besar-kecil dan whitespace. Statistik memakai data tersedia, streak memerlukan tanggal, dan cakupan arsip parsial tidak diklaim sebagai rekor sepanjang masa. Data historis tidak diisi dengan angka rekaan.
