@@ -997,8 +997,19 @@ async function renderAdminForm(section, record) {
           payload[f.key] = normalizedUrl || null;
         }
       }
-      if (section === "titles" && ["verified", "corrected"].includes(payload.confirmation_status) && !payload.confirmed_at) {
-        payload.confirmed_at = new Date().toISOString();
+      if (section === "titles" && ["verified", "corrected"].includes(payload.confirmation_status)) {
+        const { data: firstPlace, error: firstPlaceError } = await supabase.from("participations")
+          .select("id")
+          .eq("debatter_id", payload.debatter_id)
+          .eq("tournament_id", payload.tournament_id)
+          .eq("placement", 1)
+          .eq("participation_status", "confirmed")
+          .maybeSingle();
+        if (firstPlaceError) throw firstPlaceError;
+        if (!firstPlace) {
+          throw new Error("Gelar hanya dapat diverifikasi setelah partisipasi Debatter tercatat sebagai posisi 1 dan berstatus dikonfirmasi.");
+        }
+        if (!payload.confirmed_at) payload.confirmed_at = new Date().toISOString();
       }
       const result = editingRecordId
         ? await supabase.from(config.table).update(payload).eq("id", editingRecordId).select("id").maybeSingle()
