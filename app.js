@@ -717,7 +717,7 @@ async function adminPage() {
     return;
   }
   currentAdmin = true;
-  activeAdminSection = adminSections[currentRoute[1]] ? currentRoute[1] : "tournaments";
+  activeAdminSection = currentRoute[1] === "audit" || adminSections[currentRoute[1]] ? currentRoute[1] : "tournaments";
   $("#app").innerHTML = '<section class="page-wrap">' +
     heading("Private workspace / DBX", "Admin<br>workspace.", "Kelola konten, periksa verifikasi, dan publikasikan informasi yang valid.") +
     '<div class="admin-shell"><aside class="admin-side"><div class="eyebrow">Control room</div><h2>Archive<br>management.</h2>' +
