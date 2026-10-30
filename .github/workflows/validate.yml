@@ -34,6 +34,7 @@ jobs:
           js = Path("app.js").read_text(encoding="utf-8")
           function_js = Path("supabase/functions/username-login/index.ts").read_text(encoding="utf-8")
           config = json.loads(Path("vercel.json").read_text(encoding="utf-8"))
+          grants_migration = Path("supabase/migrations/20261030024552_least_privilege_archive_table_grants.sql").read_text(encoding="utf-8").lower()
           image = Path("dbx-og-image.png").read_bytes()
           poster_svg = Path("dbx-s1-registration-poster.svg").read_text(encoding="utf-8")
 
@@ -95,6 +96,9 @@ jobs:
           assert "allowedOrigins" in function_js and "Access-Control-Allow-Origin" in function_js and "Origin not allowed." in function_js, "Admin login must restrict browser origins"
           assert "SUPABASE_SECRET_KEYS" in function_js and "SUPABASE_SERVICE_ROLE_KEY" in function_js, "Privileged credentials must be read server-side only"
           assert "admin_users" in js and "founder" in js, "Founder membership must be checked before admin workspace access"
+          assert "revoke all privileges" in grants_migration and "from public, anon, authenticated" in grants_migration, "Least-privilege grants migration missing public-role revocation"
+          assert "grant select" in grants_migration and "grant insert, update, delete" in grants_migration, "Archive read and Founder CRUD grants missing"
+          assert "public.audit_logs" in grants_migration and "public.admin_users" in grants_migration, "Private admin tables must not be readable by anonymous roles"
           assert any(h.get("key") == "Content-Security-Policy" for item in config.get("headers", []) for h in item.get("headers", [])), "Content Security Policy header missing"
           print(f"OK: metadata and social preview PNG ({width}x{height}); admin Audit Log routing, login protections, and static Vercel config parsed.")
           PY
