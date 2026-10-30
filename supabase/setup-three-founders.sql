@@ -28,9 +28,9 @@ begin
   if v_gabriel_username !~ '^[a-z0-9][a-z0-9._-]{2,31}$'
      or v_daffxy_username !~ '^[a-z0-9][a-z0-9._-]{2,31}$'
      or v_maru_username !~ '^[a-z0-9][a-z0-9._-]{2,31}$'
-     or (select count(distinct x) from unnest(array[
+     or (select count(distinct u.username) from unnest(array[
        v_gabriel_username, v_daffxy_username, v_maru_username
-     ]) as x) <> 3 then
+     ]) as u(username)) <> 3 then
     raise exception 'Safe stop: usernames must be unique and match the allowed 3–32 character format.';
   end if;
 
